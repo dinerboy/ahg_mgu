@@ -36,6 +36,13 @@ test('gauge caches static geometry, clamps the needle and removes it for stale d
     g.draw(cv,'oil',spec,r,300,250,170,0.1);assert.equal(g.keys.length,1);
     g.draw(cv,'oil',spec,Object.assign({},r,{quality:'stale'}),300,250,170,0.1);assert.equal(g.needle.oil,undefined);g.clear();
 });
+test('vehicle controls expose a recheck action and retain a readable blocked reason',()=>{
+    const state=fixture(false);state.page=1;state.controls.simulated=false;state.controls.armed=true;
+    state.controls.getState=(id)=>({source:'vehicle',actual:null,error:id==='exhaust'?'Diagnostic link unavailable':null});
+    state.recheckControls=()=>{};
+    const cv=new Recorder(1600,520);V.draw(cv,state,1/60);
+    assert.ok(cv.targets.some((t)=>t.key==='recheck-link'));state.gauges.clear();
+});
 test('app syntax parses as ECMAScript 2017 (Node 8 target)',()=>{
     const acorn=require('acorn');fs.readdirSync(app).filter((f)=>f.endsWith('.js')).forEach((file)=>acorn.parse(fs.readFileSync(path.join(app,file),'utf8'),{ecmaVersion:2017}));
 });

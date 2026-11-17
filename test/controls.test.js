@@ -2,15 +2,16 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const load=require('./load-app'),{Controls}=load('controls'),{SignalStore}=load('model');
 function fixture(opts){
-    opts=opts||{};let control,watcher,now=Date.now();const commands=[],writes=[],values={controlMode:'vehicle',hold:'off',closeLimit:'4000'},store=new SignalStore(()=>now);
+    opts=opts||{};let control,watcher,now=Date.now();const listeners=[],link={available:!opts.offline,onAvailable:(fn)=>listeners.push(fn)};
+    const commands=[],writes=[],values={controlMode:'vehicle',hold:'off',closeLimit:'4000'},store=new SignalStore(()=>now);
     const controller={link:null,real:true,blocked:!!opts.unsupported,pickReason:'No supported DME',state:{requested:'OEM',accepted:null,confirmed:'UNKNOWN'},
-        get armedSetting(){return control.armed;},async start(){this.link={};},async refresh(){},
+        get armedSetting(){return control.armed;},async start(){this.link=link;},async refresh(){},
         async setMode(mode){commands.push(mode);this.state={requested:mode,accepted:true,confirmed:opts.confirmed||'UNKNOWN',busy:false};},view(){return this.state;}};
     const ctx={settings:{get:(k)=>values[k]},log:{info:()=>{},warn:()=>{},error:()=>{}},signals:{
         watch:async(i,n,h)=>{watcher=h;return {proxy:{},shutdown:async()=>{}};},
         set:async(p,f,v)=>{writes.push({f,v});if(opts.failSet)throw new Error('setter failed');}}};
     control=new Controls(ctx,store,{controller,emulator:!!opts.emulator,demo:()=>!!opts.demo});
-    return {control,controller,commands,writes,values,store,status:(n)=>watcher.statusAmbientLightInteriorColour({statusMenuAmbientePanoramicRoofInteriorLighting:'FARBAUSWAHL_'+n}),advance:(ms)=>{now+=ms;}};
+    return {control,controller,commands,writes,values,store,availability:(on)=>{link.available=on;listeners.forEach((fn)=>fn(on));},status:(n)=>watcher.statusAmbientLightInteriorColour({statusMenuAmbientePanoramicRoofInteriorLighting:'FARBAUSWAHL_'+n}),advance:(ms)=>{now+=ms;}};
 }
 test('startup sends no probes or commands; vehicle writes require session arming',async()=>{
     const f=fixture();await f.control.start();assert.equal(f.controller.link,null);
@@ -43,6 +44,23 @@ test('unsupported DME never silently simulates; stock ASD/start-stop never send'
     const f=fixture({unsupported:true});await f.control.arm();await assert.rejects(f.control.request('exhaust','OPEN'),/No supported/);
     for(const id of ['asd','startStop']){await assert.rejects(f.control.request(id,true));assert.equal(f.control.getState(id).actual,null);}
     assert.deepEqual(f.commands,[]);assert.deepEqual(f.writes,[]);await f.control.stop();
+});
+test('flap blocking reason survives periodic status refresh',async()=>{
+    const f=fixture({unsupported:true});await f.control.arm();f.control.sync();
+    assert.match(f.control.getState('exhaust').error,/No supported/);
+    await assert.rejects(f.control.request('exhaust','OPEN'),/No supported/);f.control.sync();
+    assert.match(f.control.getState('exhaust').error,/No supported/);await f.control.stop();
+});
+test('late diagnostic availability re-detects read-only, then allows an explicit command',async()=>{
+    const f=fixture({offline:true});await f.control.arm();assert.equal(f.control.ready,false);
+    assert.match(f.control.getState('exhaust').error,/Diagnostic link/);
+    f.availability(true);await f.control.queue;assert.equal(f.control.ready,true);assert.deepEqual(f.commands,[]);
+    await f.control.request('exhaust','OPEN');assert.deepEqual(f.commands,['OPEN']);await f.control.stop();
+});
+test('disconnect cancels previous override and reconnect does not replay it',async()=>{
+    const f=fixture();await f.control.arm();await f.control.request('exhaust','OPEN');
+    f.availability(false);assert.equal(f.control.ready,false);assert.equal(f.control.auto.desired,'OEM');
+    f.availability(true);await f.control.queue;await f.control.auto.tick();assert.deepEqual(f.commands,['OPEN']);await f.control.stop();
 });
 test('ambient setter uses upstream unfilled fields, confirms only matching status and rate limits',async()=>{
     const f=fixture();await f.control.arm();f.status(1);const s=await f.control.request('ambientHardware',3);

@@ -39,6 +39,7 @@ class DiagLink {
         this.available = false;
         this.dme = DME;
         this._onAvailable = [];
+        this.recentReads = [];
     }
 
     /** fn(on) when the diagnostic link comes up or goes away (apps start at boot, often before it). */
@@ -56,6 +57,14 @@ class DiagLink {
 
     /** Read a UDS 0x22 DID from the DME. Resolves {ok, data[]} or {ok:false, nrc}. */
     async readDid(did, timeoutMs) {
+        const result = await this._readDid(did, timeoutMs);
+        this.recentReads.push({did:bytesToHex(did),ok:result.ok,nrc:result.nrc==null?null:result.nrc,
+            reason:result.reason||null,data:did[0]===0xf1&&did[1]===0x90?'[VIN omitted]':result.data?bytesToHex(result.data.slice(0,20)):null});
+        if(this.recentReads.length>24)this.recentReads.shift();
+        this.log.info('DME read '+bytesToHex(did)+': '+(result.ok?'OK':result.reason||'no response'));
+        return result;
+    }
+    async _readDid(did, timeoutMs) {
         if (!this.available) return { ok: false, nrc: null, reason: 'no diagnostic link' };
         try {
             const reply = await this.diag.physical(this.dme, 0x22, did, timeoutMs || 2000, replyTo(0x22, did));

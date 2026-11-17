@@ -7,7 +7,7 @@ class Controls {
     constructor(ctx,store,options){
         this.ctx=ctx;this.store=store;this.options=options||{};this.armed=false;this.ready=false;this.stopped=false;this.busy=false;
         this.queue=Promise.resolve();this.sub=null;this.light=null;this.timer=null;this.lastColour=-Infinity;
-        this.states={};this.mode='simulation';this.generation=0;
+        this.states={};this.mode='simulation';this.generation=0;this.watchedLink=null;this.detectionError=null;
         const settings={get:(k)=>k==='arm'?(this.armed?'on':'off'):k==='platform'?'auto':k==='driveLink'?'off':ctx.settings.get(k),set:()=>{}};
         this.controller=this.options.controller||new Controller({signals:ctx.signals,log:ctx.log,spec:ctx.spec,settings});
         this.auto=new AutoFlap({controller:this.controller,get:(k)=>k==='driveLink'?'off':ctx.settings.get(k),rpm:()=>{
@@ -25,12 +25,41 @@ class Controls {
         this.timer=setInterval(()=>{if(this.armed&&!this.busy)this.auto.tick().then(()=>this.sync()).catch((e)=>this.ctx.log.warn(String(e)));},250);
     }
     enqueue(fn){const p=this.queue.then(fn);this.queue=p.catch(()=>{});return p;}
+    watchLink(){
+        const link=this.controller.link;
+        if(!link||link===this.watchedLink||!link.onAvailable)return;
+        this.watchedLink=link;
+        link.onAvailable((on)=>{
+            if(!this.armed||this.stopped||link!==this.controller.link)return;
+            if(!on){this.ready=false;this.detectionError='Diagnostic link offline; select a mode again after reconnect';this.auto._stop();this.auto.desired='OEM';this.auto.sent='OEM';this.auto.source='start';this.auto.paused=false;this.sync();return;}
+            // Re-detection is read-only. Never replay an earlier Open/Close on reconnect.
+            this.enqueue(async()=>{if(this.armed&&!this.stopped){await this.detect();this.sync();}}).catch((e)=>this.ctx.log.warn('DME reconnect: '+String(e)));
+        });
+    }
+    async detect(){
+        this.busy=true;
+        try{
+            const link=this.controller.link;
+            if(!link||(link.diag&&!link.diag.p))await this.controller.start();else await this.controller.refresh();
+            this.watchLink();
+            this.ready=this.controller.real&&!this.controller.blocked&&this.controller.link.available!==false;
+            const active=this.controller.link;
+            this.detectionError=this.ready?null:active&&active.available===false?
+                'Diagnostic link unavailable; use Recheck after ignition is ready':this.controller.pickReason||'No compatible MG1 flap detected';
+            this.ctx.log.info('AHG flap detection: '+(this.ready?'ready':this.detectionError));
+        }catch(e){this.ready=false;this.detectionError='DME detection failed: '+String(e.message||e);this.states.exhaust.error=this.detectionError;throw e;}
+        finally{this.busy=false;}
+    }
+    recheck(){return this.enqueue(async()=>{
+        if(!this.armed)throw new Error('Arm this session before rechecking');
+        await this.detect();this.sync();return this.ready;
+    });}
     sync(){
         if(!this.armed)return;
         const v=this.controller.view(),s=this.states.exhaust;
         s.desired=this.auto.desired;s.pending=!!v.busy;s.acknowledged=v.accepted;
         s.readback=v.confirmed==='UNKNOWN'?null:v.confirmed;s.actual=null;s.source='vehicle';
-        const note=this.auto.note();s.error=v.error||(note&&note.warn?note.text:null)||(v.accepted===false?'DME rejected or did not answer; see app logs':null);
+        const note=this.auto.note();s.error=this.detectionError||(!this.ready?this.controller.pickReason||'Flap not ready':null)||v.error||(note&&note.warn?note.text:null)||(v.accepted===false?'DME rejected or did not answer; see app logs':null);
     }
     async arm(){return this.enqueue(async()=>{
         if(this.stopped)throw new Error('Controls stopped');
@@ -39,8 +68,7 @@ class Controls {
         this.busy=true;
         try{
             this.mode='vehicle';this.reset();this.armed=true;
-            if(!this.controller.link)await this.controller.start();else await this.controller.refresh();
-            this.ready=this.controller.real&&!this.controller.blocked;
+            await this.detect();
             this.auto.desired='OEM';this.auto.sent='OEM';
             if(!this.sub){
                 this.sub=await this.ctx.signals.watch(LIGHT,'1',{statusAmbientLightInteriorColour:(v)=>{
@@ -52,14 +80,14 @@ class Controls {
                 }},this.ctx.log);
                 this.light=this.sub.proxy||null;
             }
-            if(!this.ready)this.states.exhaust.error=this.controller.pickReason||'No compatible MG1 flap detected';
+            this.sync();
         }catch(e){this.armed=false;throw e;}finally{this.busy=false;}
     });}
     async disarm(){return this.enqueue(async()=>{
         this.generation++;clearTimeout(this.colourTimer);this.auto._stop();
         try{if(this.armed&&this.ready){await this.auto.press('OEM');this.sync();}}
         finally{
-            this.armed=false;this.ready=false;this.auto._stop();this.auto.desired='OEM';this.auto.sent='OEM';
+            this.armed=false;this.ready=false;this.detectionError=null;this.auto._stop();this.auto.desired='OEM';this.auto.sent='OEM';
             await this.controller.refresh();
             if(this.sub&&this.sub.shutdown)await this.sub.shutdown();this.sub=null;this.light=null;
             this.states.ambientHardware.pending=false;
@@ -87,7 +115,7 @@ class Controls {
         }
         if(!this.armed){s.error='Arm vehicle controls for this session first';throw new Error(s.error);}
         if(id==='exhaust'){
-            if(!this.ready){s.error=this.controller.pickReason||'No compatible MG1 exhaust flap';throw new Error(s.error);}
+            if(!this.ready){await this.detect();if(!this.ready){s.error=this.detectionError;throw new Error(s.error);}}
             s.pending=true;await this.auto.press(desired);this.sync();return this.getState(id);
         }
         if(!this.light){s.error='Ambient colour interface unavailable';throw new Error(s.error);}

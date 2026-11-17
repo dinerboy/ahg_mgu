@@ -14,9 +14,11 @@ function start(ctx) {
         emulator:process.env.AHG_EMULATOR==='1',demo:false,trip:new Trip(),elapsed:0,toast:null,toastUntil:0};
     app.accent=()=>({comfort:T.C.blue,sport:T.C.red,night:'#bd8ddb',custom:'#dfb161'})[ctx.settings.get('profile')]||T.C.red;
     app.notice=(s)=>{app.toast=s;app.toastUntil=Date.now()+3500;app.diagnostics.log(s);};
-    app.controls=new Controls(ctx,app.store,{emulator:app.emulator,demo:()=>app.demo});
+    app.ioCtx=Object.assign({},ctx,{log:app.diagnostics.logger(ctx.log)});
+    app.controls=new Controls(app.ioCtx,app.store,{emulator:app.emulator,demo:()=>app.demo});
     app.control=(id,value)=>app.controls.request(id,value).then((s)=>app.notice(s.source==='simulation'?'SIMULATED '+id+' = '+value:s.error||'Request sent; inspect ECU read-back')).catch((e)=>app.notice(e.message));
     app.armControls=()=>{const p=app.controls.armed?app.controls.disarm():app.controls.arm();p.then(()=>app.notice(app.controls.armed?'Session armed; press a control to send':'Disarmed; OEM hand-back requested')).catch((e)=>app.notice(e.message));};
+    app.recheckControls=()=>app.controls.recheck().then((ready)=>app.notice(ready?'MG1 flap ready; select Open/Closed/OEM':app.controls.detectionError)).catch((e)=>app.notice(e.message));
     app.navigate=(i)=>{app.page=M.clamp(i,0,3);ctx.settings.set('page',IDS[app.page]);};
     app.setProfile=(p)=>{ctx.settings.set('profile',p);app.control('ambientHardware',Number(ctx.settings.get('slot_'+p))||1);};
     app.resetTrip=()=>{app.trip.reset();app.notice('App trip session reset');};
@@ -26,7 +28,7 @@ function start(ctx) {
     function provider(){
         if(app.provider)app.provider.stop();app.store.clear();app.trip.reset();app.gauges.needle={};
         app.demo=ctx.settings.get('demo')==='on';
-        app.provider=app.demo?new MockProvider(app.store,Number(ctx.settings.get('sensorHz'))||10):new MguProvider(ctx,app.store);
+        app.provider=app.demo?new MockProvider(app.store,Number(ctx.settings.get('sensorHz'))||10):new MguProvider(app.ioCtx,app.store);
         app.provider.start();app.diagnostics.log(app.demo?'DEMO provider started: synthetic readings':'Read-only provider started: no demo fallback');
     }
     app.refresh=()=>{provider();app.notice('Readings refreshed; no diagnostic scan or vehicle command');};

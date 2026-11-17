@@ -3,6 +3,12 @@ const fs=require('fs'),path=require('path'),os=require('os');
 class Diagnostics {
     constructor(dataDir) {this.dataDir=dataDir;this.started=Date.now();this.entries=[];this.stats={cpu:null,ram:null,storage:null};this.last=0;this.cpu=null;}
     log(message) {this.entries.push(new Date().toISOString()+' '+String(message).replace(/[A-HJ-NPR-Z0-9]{17}/g,'[identifier]'));if(this.entries.length>100)this.entries.shift();}
+    logger(base) {
+        const out={};['info','warn','error'].forEach((level)=>{out[level]=(...args)=>{
+            const message=args.map((x)=>String(x&&x.message||x)).join(' ');this.log(level+': '+message);
+            if(base&&base[level])base[level](message);
+        };});return out;
+    }
     update() {
         if(Date.now()-this.last<2000)return this.stats;this.last=Date.now();
         try { const n=os.cpus().reduce((a,c)=>{Object.keys(c.times).forEach((k)=>{a.total+=c.times[k];});a.idle+=c.times.idle;return a;},{total:0,idle:0});
@@ -13,9 +19,9 @@ class Diagnostics {
     }
     export(store,controls) {
         const name='ahg-diagnostics.json';
-        const report={app:'AHG Control Center',version:'1.1.0',created:new Date().toISOString(),emulator:process.env.AHG_EMULATOR==='1',
+        const report={app:'AHG Control Center',version:'1.1.1',created:new Date().toISOString(),emulator:process.env.AHG_EMULATOR==='1',
             node:process.version,uptimeSeconds:Math.floor((Date.now()-this.started)/1000),localSystem:this.update(),
-            vehicleControls:controls?{armed:controls.armed,simulated:controls.simulated,states:controls.states}:null,faults:'Not scanned',signals:store.rows(),logs:this.entries};
+            vehicleControls:controls?{armed:controls.armed,simulated:controls.simulated,flapReady:controls.ready,blockingReason:controls.detectionError,diagnosticLink:!!(controls.controller.link&&controls.controller.link.available),adapter:controls.controller.pickReason,probeReads:controls.controller.link&&controls.controller.link.recentReads||[],states:controls.states}:null,faults:'Not scanned',signals:store.rows(),logs:this.entries};
         const target=path.join(this.dataDir,name);fs.writeFileSync(target+'.tmp',JSON.stringify(report,null,2));fs.renameSync(target+'.tmp',target);
         this.log('Diagnostic report saved locally');return name;
     }

@@ -44,9 +44,10 @@ function controls(cv,a){
     card(cv,184,85,1386,121);
     cv.clip(185,86,1384,119);Art.draw(cv,'exhaust',1120,78,450,150);cv.noclip();
     exhaustIcon(cv,215,121);bold(cv,'Exhaust Flap',357,117,23);
-    [['Auto','OEM'],['Open','OPEN'],['Closed','CLOSED']].forEach((s,i)=>button(cv,s[0],357+i*231,134,231,39,()=>a.control('exhaust',s[1]),'flap-'+s[1],flap.desired===s[1]));
+    [['Auto','OEM'],['Open','OPEN'],['Closed','CLOSED']].forEach((s,i)=>button(cv,s[0],357+i*231,134,231,39,()=>a.control('exhaust',s[1]),'flap-'+s[1],flap.desired===s[1]&&flap.acknowledged===true));
     button(cv,control.simulated?'Test mode':control.busy?'Detecting...':control.armed?'Disarm / OEM':'Arm session',1113,94,439,31,control.simulated?()=>a.settings():()=>a.armControls(),'arm-session',control.armed);
-    const flapLine=flap.error||(control.simulated?'SIMULATED · State: '+(flap.actual||'Unknown'):'DME '+(flap.acknowledged===true?'accepted':flap.acknowledged===false?'not accepted':'not sent')+' · ECU read-back: '+(flap.readback||'Unknown')+' · Physical position: Unknown');
+    if(!control.simulated&&control.armed)button(cv,'Recheck',885,94,205,31,()=>a.recheckControls(),'recheck-link');
+    const flapLine=flap.error||(control.simulated?'SIMULATED · State: '+(flap.actual||'Unknown'):flap.pending?'Sending request...':flap.acknowledged==null?'No command sent · press controller or tap a mode':'DME '+(flap.acknowledged?'accepted':'not accepted')+' · ECU read-back: '+(flap.readback||'Unknown')+' · Physical position: Unknown');
     text(cv,flapLine.slice(0,111),357,191,12,flap.error?C.amber:C.text);
     card(cv,184,221,680,78);card(cv,882,221,688,78);
     icon(cv,'controls',207,244,30,C.text);bold(cv,'ASD',256,250,20);text(cv,control.simulated?'Simulation: '+(asd.actual?'On':'Off'):'Unavailable on stock software',256,278,13,C.muted);

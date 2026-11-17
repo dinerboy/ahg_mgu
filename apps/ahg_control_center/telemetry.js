@@ -1,6 +1,8 @@
 'use strict';
 const M=require('./model');
 const CDS='de.bmw.infotainment.vehicle.CDS', VEHICLE='de.bmw.infotainment.vehicle.Vehicle2';
+const FES='de.bmw.infotainment.drivingexcitement.FES';
+const {flapFor,modeName}=require('./ec_auto');
 function convert(raw,factor,offset,invalid,min,max) {
     if(!M.finite(raw) || raw===invalid) return null;
     const value=raw*factor+offset;
@@ -40,10 +42,16 @@ class MguProvider {
             }
         },1000,generation);
         this.subscribe(VEHICLE,{statusCarSpeed2:(v)=>put('speed',convert(v.speedVehicleCentreOfGravity,1/64,0,65535,0,400),VEHICLE+'.statusCarSpeed2 raw / 64')},1000,generation);
+        this.subscribe(FES,{statusFESVehicleDynamicSwitchHMI:(v)=>{
+            const raw=v&&v.actualValueModeDrivingExperience;
+            put('drive_mode',flapFor(raw)?modeName(raw):null,FES+'.statusFESVehicleDynamicSwitchHMI');
+        }},1000,generation);
     }
     subscribe(iface,handlers,delay,generation) {
         if(this.stopped || generation!==this.generation) return;
-        this.ctx.signals.watch(iface,'1',handlers,this.ctx.log).then((sub)=>{
+        // BMW fields may notify only when the value changes. Read their getters
+        // periodically so a steady/parked value can satisfy the freshness guard.
+        this.ctx.signals.watch(iface,'1',handlers,this.ctx.log,{pollMs:1000}).then((sub)=>{
             if(this.stopped || generation!==this.generation){if(sub.shutdown)sub.shutdown();return;}
             if(sub.error){
                 if(sub.shutdown)sub.shutdown();
@@ -58,6 +66,6 @@ class MguProvider {
     setVisible() {}
     stop() { this.stopped=true;this.generation++;this.timers.forEach(clearTimeout);this.timers=[];
         this.subscriptions.forEach((s)=>{if(s.shutdown)s.shutdown();});this.subscriptions=[]; }
-    capabilities() { return {mode:'read-only',signals:['rpm','oil','coolant','speed'],vehicleWrites:false}; }
+    capabilities() { return {mode:'read-only',signals:['rpm','oil','coolant','speed','drive_mode'],vehicleWrites:false}; }
 }
 module.exports={MockProvider,MguProvider,convert};

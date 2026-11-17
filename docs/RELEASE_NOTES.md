@@ -1,12 +1,12 @@
-AHG Control Center 1.1.0 adds control testing for the stock 530e setup. Physical vehicle validation remains pending, so this is a prerelease.
+AHG Control Center 1.1.1 fixes control status, diagnostic reconnect and live-signal freshness problems found after the first physical-car test.
 
-Download **AHG-Control-Center-1.1.0-Store.zip** for the USB catalog, or **ahg_control_center@1.1.0.tgz** for the OAP package. Read docs/CONTROL_TESTING.md and docs/INSTALL.md first.
+Download AHG-Control-Center-1.1.1-Store.zip (USB catalog) or ahg_control_center@1.1.1.tgz (OAP app). See docs/INSTALL.md and docs/CONTROL_TESTING.md.
 
-- Real Engine Config MG1 exhaust Open / Closed / Auto (OEM), behind a per-session Arm button and compatible DME capability probe.
-- Fresh real RPM close guard, RPM-loss OEM return, optional 15-second hold (default off), and OEM hand-back attempted on disarm/hide/shutdown.
-- Real ambient-colour slots via the upstream ComfortFunctionIuK setter, configurable per preset, with rate limiting and independent status read-back.
-- All control groups interactive in explicitly labelled simulation. Emulator/demo always prevents vehicle writes.
-- Stock ASD and start-stop memory remain simulation-only: no supported stock write is present in the referenced implementations. The UI reports the reason in vehicle mode.
-- Local diagnostics include command state. No flashing, tuning, xDrive or SSH operations are invoked.
+- Preserve flap detection/blocking errors instead of erasing them every 250 ms.
+- Re-detect the DME when TASU becomes available after arming. Add Recheck and retry detection on an explicit control press. Reconnection does not replay an old override.
+- Poll passive signal getters every second so unchanged values can remain fresh. Stop polling and suppress late callbacks on subscription shutdown.
+- Add the upstream passive FES driving-mode field.
+- Connect actual TASU/DME and subscription messages to Open Logs; export link status, adapter, blocking reason and bounded probe results with VIN omitted.
+- Distinguish controller focus from an accepted request. No filled active flap button before acceptance; show press/tap instructions when no command was sent.
 
-Desktop unit and native emulator tests pass. No proprietary SDK is included; MGU Store supplies its existing BMW donor SDK. GitHub-hosted CI was unavailable due to the account's billing lock; use the locally built release assets.
+36 automated checks, including the real controller/DiagLink/Diag request-response path with simulated late TASU startup. Physical behavior on this exact car remains to be confirmed after updating. This is a hotfix, not a claim that all original dashboard features are implemented: real boost, voltage and hybrid readers are still absent; stock ASD and start-stop memory still have no supported real provider. No new actuator jobs or bypasses are added.

@@ -25,6 +25,7 @@
     "kit/tools/build.py: SDK-free Store package option and app metadata",
     "kit/tools/emu.js: Windows named pipe, explicit preview build, emulator provenance",
     "kit/runtime/renderd.js: Windows named-pipe availability",
-    "kit/runtime/fonts: Apache-licensed Roboto atlases (tools/bake-ahg-fonts.py)"
+    "kit/runtime/fonts: Apache-licensed Roboto atlases (tools/bake-ahg-fonts.py)",
+    "kit/runtime/signals.js: stop getter polling and ignore late callbacks after shutdown"
   ]
 }

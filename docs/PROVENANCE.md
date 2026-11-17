@@ -18,3 +18,8 @@ Three illustrative raster assets were generated with Codex's built-in image gene
 ## 1.1.0 control integration
 
 Engine Config controller.js, diaglink.js, adapters.js, real_adapters.js and auto.js are copied as ec_*.js; only local import names are changed. Ambient config ambient.js is copied as ec_ambient.js; AHG uses its request/slotOf helpers, not its automatic follower. Both come from the pinned MIT idrive7-apps commit. AHG controls.js adds the stock-car session, simulation isolation, serialization and ambient status tracking. No undocumented stock ASD or start-stop write is invented. See CONTROL_TESTING.md.
+
+
+## 1.1.1 local patches
+
+The copied ec_diaglink.js now records bounded read outcomes and logs failures; VIN read payloads are omitted from the exported probe list. Diagnostic request bytes and adapter matching are unchanged. kit/runtime/signals.js now clears polling intervals and suppresses callbacks after shutdown. AHG enables the existing pollMs getter option for steady signal freshness and subscribes to the same passive FES driving-mode field used by Engine Config. Controls now watch late availability without replaying commands.

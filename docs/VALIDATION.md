@@ -7,3 +7,8 @@ Automated checks cover: passive signal decoding, invalid/stale signals, source p
 Outstanding: physical ID7 installation, donor SDK compatibility, exact 530e DME acceptance and flap movement, real ambient slots/colours, physical input behavior, transport-loss/forced-kill behavior and prolonged hardware operation. ECU read-back is not proof of physical position. No car was actuated, flashed or installed during desktop validation.
 
 Observed desktop rendering was around 35–42 fps active with background throttling. This is not a vehicle performance certification. GitHub Actions could not start for the first release because GitHub reported an account billing lock; local verification is the release evidence.
+
+
+## 1.1.1 regression coverage
+
+36 checks pass. Added full Controller → DiagLink → Diag → simulated TASU response integration; late availability and read-only reconnect; persistent blocking errors; no command replay after disconnect; unchanged getter polling and shutdown cleanup; the vehicle Recheck input target. These are desktop regressions, not proof of physical flap actuation. Photos supplied by the owner establish that oil/coolant subscriptions and ambient status are reaching the app, while the photographed Open outline alone does not establish a sent command.
