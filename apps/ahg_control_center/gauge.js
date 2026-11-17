@@ -1,0 +1,61 @@
+'use strict';
+const M=require('./model'),T=require('./theme');
+const {makeLayer,dropLayer}=require('./kit/record');
+const Art=require('./art');
+const RAD=Math.PI/180;
+function point(cx,cy,r,a) {return [cx+r*Math.cos(a*RAD),cy+r*Math.sin(a*RAD)];}
+class Gauge {
+    constructor() {this.faces={};this.keys=[];this.needle={};}
+    face(spec,r) {
+        const key=[spec.label,spec.min,spec.max,r].join(':');
+        if(this.faces[key])return this.faces[key];
+        const d=r*2+16,c=r+8;
+        const layer=makeLayer(d,d,(cv)=>{
+            Art.paint(cv,'dial',d,d);
+            // Recorder arcs start at twelve o'clock; Cartesian geometry starts
+            // at three. Keep warning zones on the same scale as ticks/needles.
+            cv.arc(c,c,r*0.83,r*0.865,230,270,T.C.blue);
+            if(spec.hot!=null)cv.arc(c,c,r*0.83,r*0.865,M.angle(spec.hot,spec.min,spec.max)+90,490,T.C.red);
+            const count=Math.round((spec.max-spec.min)/spec.minor);
+            for(let i=0;i<=count;i++){
+                const value=spec.min+i*spec.minor,a=M.angle(value,spec.min,spec.max);
+                const major=Math.abs((value-spec.min)/spec.major-Math.round((value-spec.min)/spec.major))<0.001;
+                const outer=r*0.815,inner=outer-(major?r*0.08:r*0.035);
+                const p=point(c,c,inner,a),q=point(c,c,outer,a);
+                cv.line(p[0],p[1],q[0],q[1],major?2:1,major?'#e5e7eb':'#74808d');
+                if(major){const z=point(c,c,r*0.64,a);const label=spec.max>=1000?String(Math.round(value/1000)):String(Math.round(value*10)/10);
+                    T.text(cv,label,z[0],z[1]+5,r>140?18:12,'#f0f2f5','center');}
+            }
+        });
+        this.faces[key]=layer;this.keys.push(key);
+        if(this.keys.length>12){const old=this.keys.shift();dropLayer(this.faces[old]);delete this.faces[old];}
+        return layer;
+    }
+    draw(cv,id,spec,reading,cx,cy,r,dt) {
+        const size=r>140?1:0.72;
+        cv.blit(this.face(spec,r),cx-r-8,cy-r-8);
+        const live=reading.quality==='live' && M.finite(reading.value);
+        let value=this.needle[id];
+        if(!live){delete this.needle[id];value=spec.min;}
+        else {
+            const target=M.clamp(reading.value,spec.min,spec.max);
+            if(value==null)value=reading.source==='mock'?spec.min:target;
+            value=M.damp(value,target,dt);this.needle[id]=value;
+        }
+        const a=M.angle(value,spec.min,spec.max)*RAD,ux=Math.cos(a),uy=Math.sin(a),nx=-uy,ny=ux;
+        function p(l,w){return [cx+ux*l+nx*w,cy+uy*l+ny*w];}
+        const polygon=[p(r*0.79,0),p(r*0.08,r*0.027),p(-r*0.16,r*0.022),p(-r*0.18,0),p(-r*0.16,-r*0.022),p(r*0.08,-r*0.027)];
+        if(live){cv.fill(polygon.map((pt)=>[pt[0]+3,pt[1]+3]),'#000000aa');cv.fill(polygon,T.C.red);const tip=p(r*0.7,0),tail=p(-r*0.11,0);cv.line(tail[0],tail[1],tip[0],tip[1],1,'#ffb4b0');}
+        else {const q=p(r*0.65,0);cv.line(cx,cy,q[0],q[1],2,'#333b45');}
+        cv.circle(cx,cy,r*0.105,'#11151b');cv.arc(cx,cy,r*0.095,r*0.105,180,350,'#87909b');cv.circle(cx,cy,r*0.067,'#222831');
+        T.bold(cv,spec.label,cx,cy+r*0.28,(r>140?20:18)*size,T.C.text,'center');
+        T.text(cv,spec.unit+(spec.unit==='rpm'?' ×1000':''),cx,cy+r*0.42,14*size,T.C.muted,'center');
+        const rw=r>140?133:94,rh=r>140?34:27,ry=cy+r*0.53;
+        cv.roundRect(cx-rw/2,ry,rw,rh,5,'#7a838e');cv.roundRect(cx-rw/2+1,ry+1,rw-2,rh-2,4,'#06080b');
+        T.bold(cv,M.format(reading,spec.decimals)+(live?' '+spec.unit:''),cx,ry+rh*0.72,20*size,live?T.C.text:T.C.muted,'center');
+        const state=live?(reading.source==='mock'?'DEMO':'LIVE'):reading.quality==='stale'?'STALE':'NO SIGNAL';
+        T.text(cv,state,cx,cy+r+10,10,live?(reading.source==='mock'?T.C.amber:T.C.blue):T.C.amber,'center');
+    }
+    clear() {this.keys.forEach((k)=>dropLayer(this.faces[k]));this.faces={};this.keys=[];this.needle={};}
+}
+module.exports={Gauge,point};

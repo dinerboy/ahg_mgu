@@ -1,0 +1,33 @@
+{
+  "id": "ahg_control_center",
+  "title": "AHG Control Center",
+  "description": "After Hours Garage: read-only instruments, hybrid overview and signal diagnostics. Vehicle controls unsupported in V1.",
+  "version": "1.0.0",
+  "vendor": "After Hours Garage",
+  "license": "MIT",
+  "loggingId": "AHG1",
+  "iconGlyph": "AHG",
+  "mguHmi": ["ID7"],
+  "memoryKB": 131072,
+  "cpuLimit": 30,
+  "signals": {
+    "de.bmw.infotainment.vehicle.CDS": {"_optional": "RPM and engine temperatures unavailable", "statusEngineSpeed2": "rs", "statusEngineTemperature": "rs"},
+    "de.bmw.infotainment.vehicle.Vehicle2": {"_optional": "Speed unavailable", "statusCarSpeed2": "rs"}
+  },
+  "screens": [{"name": "MAIN", "kind": "canvas", "title": "AHG Control Center", "buttons": [["BTN_PAGE", "Next page"], ["BTN_PREV", "Previous page"], ["BTN_SETTINGS", "Settings"]]}],
+  "settings": [
+    {"key": "demo", "label": "Synthetic demo data", "type": "choice", "default": "off", "options": [["off", "Off — read-only vehicle signals"], ["on", "On — labeled demo only"]]},
+    {"key": "page", "label": "Start page", "type": "choice", "default": "home", "options": [["home", "Home"], ["controls", "Controls"], ["hybrid", "Hybrid"], ["system", "System"]]},
+    {"key": "profile", "label": "Local ambient preset", "type": "choice", "default": "sport", "options": [["comfort", "Comfort"], ["sport", "Sport"], ["night", "Night"], ["custom", "Custom"]]},
+    {"key": "displayMode", "label": "App display mode", "type": "choice", "default": "auto", "options": [["auto", "Auto (dark instruments)"], ["dark", "Dark"]]},
+    {"key": "sensorHz", "label": "Display sampling limit", "type": "choice", "default": 10, "options": [[5,"5 Hz"],[10,"10 Hz"],[20,"20 Hz"]]},
+    {"key": "boostMax", "label": "Boost scale (bar)", "type": "number", "default": 2, "steps": [1.5, 2, 2.5, 3]},
+    {"key": "gauge1", "label": "Primary gauge 1", "type": "choice", "default": "boost", "options": [["boost","Boost (verified source required)"],["rpm","Engine RPM"],["speed","Vehicle speed"]]},
+    {"key": "gauge2", "label": "Primary gauge 2", "type": "choice", "default": "oil", "options": [["oil","Oil temperature"],["coolant","Coolant temperature"],["rpm","Engine RPM"],["speed","Vehicle speed"]]},
+    {"key": "gauge3", "label": "Small gauge 1", "type": "choice", "default": "coolant", "options": [["coolant","Coolant temperature"],["oil","Oil temperature"],["rpm","Engine RPM"],["speed","Vehicle speed"]]},
+    {"key": "gauge4", "label": "Small gauge 2", "type": "choice", "default": "voltage", "options": [["voltage","12 V system voltage (source required)"],["coolant","Coolant temperature"],["rpm","Engine RPM"],["speed","Vehicle speed"]]},
+    {"key": "layout", "label": "Screen layout", "type": "choice", "default": "full", "options": [["full","Full — preserve native HMI areas"],["standard","Standard HMI frame"]]},
+    {"key": "renderer", "label": "Renderer", "type": "choice", "default": "auto", "options": [["auto","Automatic"],["software","Software fallback"]]},
+    {"key": "theme", "label": "Native kit theme", "type": "choice", "default": "red", "options": [["red","AHG red"]], "hidden": true}
+  ]
+}

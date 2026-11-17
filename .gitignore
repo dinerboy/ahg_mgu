@@ -1,0 +1,10 @@
+.upstream/
+dist/
+preview/
+node_modules/
+oap-sdk/
+__pycache__/
+*.pyc
+artifacts/
+.venv/
+artifacts-*.png

@@ -1,0 +1,30 @@
+{
+  "repositories": [
+    {
+      "name": "idrive7-apps",
+      "commit": "bf4b190f64fe50740657d926b5592070665d2408",
+      "url": "https://github.com/cauliflowermossgrape/idrive7-apps.git"
+    },
+    {
+      "name": "mgu-store",
+      "commit": "7956321fd40bceafffa8842719155e6176652720",
+      "url": "https://github.com/robertnisipeanu/mgu-store.git"
+    },
+    {
+      "name": "aref-apps",
+      "commit": "e7d97819d9363f8e352a6cd5e6150cc0752f3c8e",
+      "url": "https://github.com/arefahmad/idrive7-apps.git"
+    },
+    {
+      "name": "bimmer-apps",
+      "commit": "ab81cee4d77859b531b21a118772c6b031455b78",
+      "url": "https://github.com/bimmer-lab/apps.git"
+    }
+  ],
+  "localPatches": [
+    "kit/tools/build.py: SDK-free Store package option and app metadata",
+    "kit/tools/emu.js: Windows named pipe, explicit preview build, emulator provenance",
+    "kit/runtime/renderd.js: Windows named-pipe availability",
+    "kit/runtime/fonts: Apache-licensed Roboto atlases (tools/bake-ahg-fonts.py)"
+  ]
+}
