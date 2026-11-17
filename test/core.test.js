@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const base='../apps/ahg_control_center/';
 const M=require(base+'model'),{convert,MockProvider,MguProvider}=require(base+'telemetry');
-const {Trip}=require(base+'trip'),{UnsupportedControls}=require(base+'controls'),{validated,normalize}=require(base+'settings');
+const {Trip}=require(base+'trip'),{validated,normalize}=require(base+'settings');
 test('dial angles: negative and nonzero minima, exact endpoints and bounds',()=>{
     assert.equal(M.angle(-1,-1,2),140);assert.equal(M.angle(2,-1,2),400);assert.equal(M.angle(100,50,150),270);
     assert.equal(M.angle(-999,50,150),140);assert.equal(M.angle(999,50,150),400);
@@ -42,12 +42,6 @@ test('read-only MGU provider uses only known watchers, no demo fallback and shut
     assert.equal(watchers.length,2);assert.equal(store.get('boost').quality,'unsupported');assert.equal(store.get('rpm').quality,'unsupported');
     watchers[0].handlers.statusEngineSpeed2({actualValueRPMEngineCrankshaft:8000});assert.equal(store.get('rpm').value,2000);
     p.stop();assert.equal(closed,2);watchers[0].handlers.statusEngineSpeed2({actualValueRPMEngineCrankshaft:4000});assert.equal(store.get('rpm').value,2000);
-});
-test('all vehicle controls reject requests without mutating acknowledged or actual state',async()=>{
-    const controls=new UnsupportedControls();for(const id of ['exhaust','asd','startStop','ambientHardware']){
-        assert.equal(controls.capabilities()[id],false);await assert.rejects(controls.request(id,'open'),/Not supported/);
-        assert.deepEqual(controls.getState(id),{id,supported:false,desired:null,pending:false,acknowledged:null,actual:null,error:'Not supported — no verified vehicle provider'});
-    }
 });
 test('trip integrates received speed only and marks data gaps partial',()=>{
     const trip=new Trip();for(let i=0;i<=10;i++)trip.update({value:36,quality:'live'},i*100);

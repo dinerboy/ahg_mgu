@@ -11,11 +11,11 @@ class Diagnostics {
         try {if(typeof fs.statfsSync==='function'){const s=fs.statfsSync(this.dataDir);this.stats.storage=s.blocks?100*(1-s.bavail/s.blocks):null;}}catch(e){}
         return this.stats;
     }
-    export(store) {
+    export(store,controls) {
         const name='ahg-diagnostics.json';
-        const report={app:'AHG Control Center',version:'1.0.0',created:new Date().toISOString(),emulator:process.env.AHG_EMULATOR==='1',
+        const report={app:'AHG Control Center',version:'1.1.0',created:new Date().toISOString(),emulator:process.env.AHG_EMULATOR==='1',
             node:process.version,uptimeSeconds:Math.floor((Date.now()-this.started)/1000),localSystem:this.update(),
-            vehicleControls:'unsupported',faults:'Not scanned',signals:store.rows(),logs:this.entries};
+            vehicleControls:controls?{armed:controls.armed,simulated:controls.simulated,states:controls.states}:null,faults:'Not scanned',signals:store.rows(),logs:this.entries};
         const target=path.join(this.dataDir,name);fs.writeFileSync(target+'.tmp',JSON.stringify(report,null,2));fs.renameSync(target+'.tmp',target);
         this.log('Diagnostic report saved locally');return name;
     }

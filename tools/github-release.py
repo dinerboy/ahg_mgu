@@ -9,6 +9,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REPO = 'dinerboy/ahg_mgu'
 
 def main():
+    version = json.loads((ROOT/'apps/ahg_control_center/app.json').read_text())['version']
+    tag = 'v'+version
     env = dict(os.environ, GIT_TERMINAL_PROMPT='0', GCM_INTERACTIVE='Never')
     result = subprocess.run(['git', 'credential', 'fill'], input='protocol=https\nhost=github.com\n\n', text=True, capture_output=True, check=True, env=env)
     fields = dict(line.split('=', 1) for line in result.stdout.splitlines() if '=' in line)
@@ -26,14 +28,15 @@ def main():
     except urllib.error.HTTPError as error:
         if error.code != 404: raise
         repo = api('/user/repos', {'name': 'ahg_mgu', 'description': 'AHG Control Center for BMW MGU iDrive 7: native SDK dashboard, emulator and Store package.', 'private': False, 'auto_init': False})
-    subprocess.run(['git', 'remote', 'add', 'origin', repo['clone_url']], cwd=ROOT, check=True)
+    if subprocess.run(['git', 'remote', 'get-url', 'origin'], cwd=ROOT, capture_output=True).returncode:
+        subprocess.run(['git', 'remote', 'add', 'origin', repo['clone_url']], cwd=ROOT, check=True)
     subprocess.run(['git', 'push', '-u', 'origin', 'main'], cwd=ROOT, check=True)
-    subprocess.run(['git', 'tag', 'v1.0.0'], cwd=ROOT, check=True)
-    subprocess.run(['git', 'push', 'origin', 'v1.0.0'], cwd=ROOT, check=True)
-    release = api('/repos/'+REPO+'/releases', {'tag_name': 'v1.0.0', 'name': 'AHG Control Center 1.0.0 — emulator verified', 'body': (ROOT/'docs/RELEASE_NOTES.md').read_text(encoding='utf-8'), 'prerelease': True})
+    subprocess.run(['git', 'tag', tag], cwd=ROOT, check=True)
+    subprocess.run(['git', 'push', 'origin', tag], cwd=ROOT, check=True)
+    release = api('/repos/'+REPO+'/releases', {'tag_name': tag, 'name': 'AHG Control Center '+version+' — control testing', 'body': (ROOT/'docs/RELEASE_NOTES.md').read_text(encoding='utf-8'), 'prerelease': True})
     upload = release['upload_url'].split('{')[0]
     from urllib.parse import quote
-    names = ['AHG-Control-Center-1.0.0-Store.zip', 'ahg_control_center@1.0.0.tgz', 'SHA256SUMS.txt']
+    names = ['AHG-Control-Center-'+version+'-Store.zip', 'ahg_control_center@'+version+'.tgz', 'SHA256SUMS.txt']
     for name in names:
         file = ROOT/'dist'/name
         asset = api(upload+'?name='+quote(name), binary=file.read_bytes(), content_type='application/octet-stream')

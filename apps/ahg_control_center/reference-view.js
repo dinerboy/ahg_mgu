@@ -17,9 +17,10 @@ function header(cv,a){
         cv.target(16,y-8,132,78,()=>a.navigate(i),'nav-'+i,6);
     });
     text(cv,'BMW 530e',880,63,17,C.text,'center');
-    text(cv,a.demo?'DEMO · SYNTHETIC':a.emulator?'EMULATOR · NO CAR':'READ-ONLY',1565,63,12,a.demo||a.emulator?C.amber:C.muted,'right');
+    text(cv,a.controls.simulated?'SIMULATION · NO CAR WRITES':a.controls.armed?'VEHICLE CONTROLS · ARMED':'VEHICLE CONTROLS · DISARMED',1565,63,12,a.controls.armed?C.red:C.amber,'right');
     cv.line(174,477,1587,477,1,'#717477');
-    const entries=[['Flap','Unavailable'],['Mode',field(a,'drive_mode')],['Hybrid',field(a,'drive_source')],['HV',field(a,'hv_soc',0)+(a.demo?'%':'')],['EV range',field(a,'ev_range',0)+(a.demo?' km':'')],['Faults','Not scanned']];
+    const flap=a.controls.getState('exhaust');
+    const entries=[['Flap',flap.source==='simulation'?(flap.actual||'--')+' (sim)':flap.readback||'Unknown'],['Mode',field(a,'drive_mode')],['Hybrid',field(a,'drive_source')],['HV',field(a,'hv_soc',0)+(a.demo?'%':'')],['EV range',field(a,'ev_range',0)+(a.demo?' km':'')],['Faults','Not scanned']];
     entries.forEach((e,i)=>{const x=187+i*232;text(cv,e[0]+':',x,505,13,C.muted);text(cv,e[1],x+68,505,14,C.text);if(i<5)cv.line(x+218,487,x+218,510,1,'#53565a');});
 }
 function home(cv,a,dt){
@@ -39,17 +40,21 @@ function exhaustIcon(cv,x,y){
     cv.arc(x+75,y+23,9,11,0,360,C.text);cv.arc(x+97,y+23,9,11,0,360,C.text);
 }
 function controls(cv,a){
+    const control=a.controls,flap=control.getState('exhaust'),asd=control.getState('asd'),ss=control.getState('startStop'),ambient=control.getState('ambientHardware');
     card(cv,184,85,1386,121);
     cv.clip(185,86,1384,119);Art.draw(cv,'exhaust',1120,78,450,150);cv.noclip();
     exhaustIcon(cv,215,121);bold(cv,'Exhaust Flap',357,117,23);
-    ['Auto','Open','Closed'].forEach((s,i)=>button(cv,s,357+i*231,134,231,39,null,'flap-'+s,false,true));
-    text(cv,'Engine Config integration not enabled in V1 · Actual position: Unknown',357,191,12,C.amber);
+    [['Auto','OEM'],['Open','OPEN'],['Closed','CLOSED']].forEach((s,i)=>button(cv,s[0],357+i*231,134,231,39,()=>a.control('exhaust',s[1]),'flap-'+s[1],flap.desired===s[1]));
+    button(cv,control.simulated?'Test mode':control.busy?'Detecting...':control.armed?'Disarm / OEM':'Arm session',1113,94,439,31,control.simulated?()=>a.settings():()=>a.armControls(),'arm-session',control.armed);
+    const flapLine=flap.error||(control.simulated?'SIMULATED · State: '+(flap.actual||'Unknown'):'DME '+(flap.acknowledged===true?'accepted':flap.acknowledged===false?'not accepted':'not sent')+' · ECU read-back: '+(flap.readback||'Unknown')+' · Physical position: Unknown');
+    text(cv,flapLine.slice(0,111),357,191,12,flap.error?C.amber:C.text);
     card(cv,184,221,680,78);card(cv,882,221,688,78);
-    icon(cv,'controls',207,244,30,C.text);bold(cv,'ASD',256,250,20);text(cv,'Active Sound · unavailable',256,278,13,C.muted);
-    cv.roundRect(755,244,76,31,15,'#292b2d');cv.circle(771,259,12,'#898c90');
+    icon(cv,'controls',207,244,30,C.text);bold(cv,'ASD',256,250,20);text(cv,control.simulated?'Simulation: '+(asd.actual?'On':'Off'):'Unavailable on stock software',256,278,13,C.muted);
+    cv.roundRect(755,244,76,31,15,asd.actual?'#ae101b':'#292b2d');cv.circle(asd.actual?815:771,259,12,C.text);cv.target(744,231,100,57,()=>a.control('asd',!asd.desired),'asd-toggle',10);
     cv.arc(921,259,18,21,0,360,C.text);text(cv,'A',921,266,19,C.text,'center');bold(cv,'Start-Stop Memory',962,250,20);
-    text(cv,'UI placeholder · no ECU coding',962,278,13,C.muted);
-    card(cv,184,315,1386,91);icon(cv,'system',208,341,29,C.text);bold(cv,'Ambient Lighting',255,345,20);text(cv,'Local app preset',255,375,14,C.muted);
+    text(cv,control.simulated?'Simulation: '+(ss.actual?'Remember':'Off'):'No verified stock memory write',962,278,13,C.muted);
+    cv.roundRect(1467,244,76,31,15,ss.actual?'#ae101b':'#292b2d');cv.circle(ss.actual?1527:1483,259,12,C.text);cv.target(1456,231,100,57,()=>a.control('startStop',!ss.desired),'startstop-toggle',10);
+    card(cv,184,315,1386,91);icon(cv,'system',208,341,29,C.text);bold(cv,'Ambient Lighting',255,345,20);text(cv,(control.simulated?'Simulation':'Car colour')+' · Slot '+(ambient.actual||'--')+(ambient.pending?' (pending)':''),255,375,14,C.muted);
     ['comfort','sport','night','custom'].forEach((p,i)=>{
         const x=611+i*235,on=a.ctx.settings.get('profile')===p;
         button(cv,'',x,330,219,61,()=>a.setProfile(p),'profile-'+p,on);
@@ -109,10 +114,10 @@ function system(cv,a){
     }else{
         bold(cv,'Service Status',205,245,19);
         const live=a.store.rows().filter((r)=>r.quality==='live'&&r.source==='mgu').length;
-        const rows=[['Vehicle signals',a.demo||a.emulator?'Demo':live?'Receiving':'Waiting'],['Hybrid data',a.demo?'Demo':'Unavailable'],['Control interface','Not armed'],['App runtime','Running'],['Network / Internet','Not checked']];
+        const rows=[['Vehicle signals',a.demo||a.emulator?'Demo':live?'Receiving':'Waiting'],['Hybrid data',a.demo?'Demo':'Unavailable'],['Control interface',a.controls.simulated?'Simulation':a.controls.armed?'Armed':'Disarmed'],['App runtime','Running'],['Network / Internet','Not checked']];
         rows.forEach((r,i)=>{const y=276+i*27;cv.circle(212,y-5,4,i===3?C.green:C.muted);text(cv,r[0],232,y,14,C.text);text(cv,r[1],841,y,14,i===3?C.green:C.muted,'right');});
     }
-    const rows=[['App Version','1.0.0'],['SDK Build','bf4b190f'],['Last Launch',new Date(a.diagnostics.started).toISOString().slice(11,19)+' UTC'],['App Uptime',Math.floor((Date.now()-a.diagnostics.started)/1000)+' sec']];
+    const rows=[['App Version',a.ctx.spec?a.ctx.spec.version:'1.1.0'],['SDK Build','bf4b190f'],['Last Launch',new Date(a.diagnostics.started).toISOString().slice(11,19)+' UTC'],['App Uptime',Math.floor((Date.now()-a.diagnostics.started)/1000)+' sec']];
     rows.forEach((r,i)=>{const y=252+i*45;icon(cv,i===0?'system':'controls',903,y-16,18,C.text);text(cv,r[0],943,y,15,C.text);text(cv,r[1],1548,y,15,C.text,'right');if(i<3)cv.line(901,y+15,1551,y+15,1,'#35383b');});
     const actions=[['View Logs',()=>{a.systemMode='logs';}],['Signal Viewer',()=>{a.systemMode='signals';}],['Export Diagnostics',()=>a.exportReport()],['Settings',()=>a.settings()]];
     actions.forEach((r,i)=>button(cv,r[0],184+i*350,429,336,40,r[1],'system-'+i));

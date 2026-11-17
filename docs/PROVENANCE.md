@@ -13,3 +13,8 @@ Three illustrative raster assets were generated with Codex's built-in image gene
 - `art/exhaust-hero.png`: photographic dark glossy rear bumper, red LED taillight and twin chrome exhaust tips on the right, black negative space on the left, no labels or UI.
 
 `tools/compile-art.js` compiles these original PNGs to adaptive shaded triangle cells, the same native renderer technique used by upstream Engine Config's exhaust image. Compiled payloads are committed so Store builds require no image tools or network. Needles, numbers, switches and navigation are code, not painted into the images.
+
+
+## 1.1.0 control integration
+
+Engine Config controller.js, diaglink.js, adapters.js, real_adapters.js and auto.js are copied as ec_*.js; only local import names are changed. Ambient config ambient.js is copied as ec_ambient.js; AHG uses its request/slotOf helpers, not its automatic follower. Both come from the pinned MIT idrive7-apps commit. AHG controls.js adds the stock-car session, simulation isolation, serialization and ambient status tracking. No undocumented stock ASD or start-stop write is invented. See CONTROL_TESTING.md.
