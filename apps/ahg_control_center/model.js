@@ -2,7 +2,8 @@
 const DEFINITIONS = {
     boost: {label:'Boost',unit:'bar',min:0,max:2,major:0.5,minor:0.1,decimals:2,hot:1.5},
     oil: {label:'Oil temperature',unit:'°C',min:50,max:150,major:20,minor:5,decimals:0,hot:125},
-    coolant: {label:'Coolant',unit:'°C',min:50,max:130,major:20,minor:5,decimals:0,hot:110},
+    // App advisory colours, not BMW's calibrated overheating thresholds.
+    coolant: {label:'Coolant',unit:'°C',min:50,max:130,major:20,minor:5,decimals:0,warn:115,hot:120},
     voltage: {label:'12 V system',unit:'V',min:10,max:16,major:1,minor:0.2,decimals:1,hot:15,staleMs:15000},
     rpm: {label:'Engine speed',unit:'rpm',min:0,max:8000,major:2000,minor:200,decimals:0,hot:6500},
     speed: {label:'Speed',unit:'km/h',min:0,max:240,major:40,minor:10,decimals:0,hot:200},

@@ -53,12 +53,13 @@ test('health report: pass, attention and no data from what was seen',()=>{
     let t=1000;const store=new M.SignalStore(()=>t),hm=new HealthMonitor(store,{now:()=>t});
     const put=(o)=>Object.keys(o).forEach((k)=>store.put(k,o[k],'mgu'));
     assert.equal(hm.report().result,'nodata');
-    for(let i=0;i<20;i++){t+=200;put({rpm:4000,boost_target:1.2,boost_actual:i<10?1.15:0.8,hpfp:250,lpfp:5.2,voltage:14.1,oil:95,coolant:90});hm.sample();}
+    for(let i=0;i<20;i++){t+=200;put({rpm:4000,boost_target:1.2,boost_actual:i<10?1.15:0.8,hpfp:250,lpfp:5.2,voltage:14.1,oil:108,coolant:110});hm.sample();}
     hm.setMisfire([0,0,3,0],'ok');
     const r=hm.report();
     const by=(id)=>r.items.find((x)=>x.id===id);
     assert.equal(by('boost').status,'attention','0.4 bar under target');assert.equal(by('hpfp').status,'pass');assert.equal(by('lpfp').status,'pass');
     assert.equal(by('v12').status,'pass');assert.equal(by('misfire').status,'pass');assert.equal(by('hv').status,'nodata');
+    assert.equal(by('temps').status,'pass','steady 108 C oil / 110 C coolant does not trigger a temperature warning');
     assert.equal(r.result,'attention');assert.equal(r.attention,1);
 });
 test('misfire alert warns once per cylinder and once on critical',()=>{

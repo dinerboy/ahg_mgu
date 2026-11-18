@@ -41,3 +41,7 @@ The actual kit Recorder supports arcs, polygons, lines, gradients, font atlases 
 Vehicle requests are serialised. From 1.2.0 the car build arms itself at startup: it performs read-only DME detection and the colour-status subscription; a control press (or Hold re-sending the pressed mode) is required for actuation. Detection is retried when the diagnostic link comes up and on the next press. Hiding the app keeps the flap state; quitting attempts OEM hand-back. New sessions never replay previous commands. Failure, unknown state and simulation remain distinct. No OEM SDK or native renderer binary is distributed; Store supplies an existing donor SDK.
 
 In 1.1.1, CDS/Vehicle2/FES getters are polled every second. FES.statusFESVehicleDynamicSwitchHMI adds the real driving-mode name using the upstream enum mapping. Subscription shutdown stops polling. Delayed diagnostic availability triggers read-only DME re-detection; Recheck is available, and blocking reasons persist.
+
+## Temperature colour guidance (1.4.1)
+
+The coolant dial now starts amber at 115 C and red at 120 C. The previous 110 C red band was misleading for the owner's steady operating reading. These are app advisory colours, not calibrated BMW warning limits. The Health temperature criteria are unchanged; 108 C oil and 110 C coolant pass that item. Factory warnings take precedence.
