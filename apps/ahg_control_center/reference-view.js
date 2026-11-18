@@ -37,7 +37,7 @@ function header(cv,a){
     cv.line(174,477,1587,477,1,'#717477');
     const flap=a.controls.getState('exhaust'),log=logState(a);
     const entries=[
-        ['Flap',flap.source==='simulation'?(flap.actual||'--')+' (sim)':!a.controls.armed?'Not armed':flap.readback||'Unknown'],
+        ['Flap',flap.source==='simulation'?(flap.actual||'--')+' (sim)':!a.controls.ready?'Not detected':flap.readback||'Auto'],
         ['Mode',field(a,'drive_mode')],
         ['Speed',withUnit(a,'speed',0,'km/h')],
         ['Oil',withUnit(a,'oil',0,'°C')],
@@ -98,7 +98,7 @@ function smoke(cv,ox,oy,dir,reach,amt,ts,seed){
     }
 }
 function controls(cv,a,dt){
-    const control=a.controls,sim=control.simulated,flap=control.getState('exhaust'),asd=control.getState('asd'),ss=control.getState('startStop'),ambient=control.getState('ambientHardware');
+    const control=a.controls,sim=control.simulated,flap=control.getState('exhaust'),ambient=control.getState('ambientHardware');
     // Exhaust flap hero: the photo fills the right of a black card, controls sit on the dark left.
     cv.roundRect(184,85,1386,215,12,'#2f3337');cv.roundRect(185,86,1384,213,11,'#000000'); // photo edge is pure black: no seam
     Art.draw(cv,'exhaust',748,86,820,213); // pre-cropped to exactly this box (art/exhaust-crop.png)
@@ -115,28 +115,28 @@ function controls(cv,a,dt){
     smoke(cv,1343,236,-1,150,a.smoke.l,ts,0);smoke(cv,1431,236,0.45,70,a.smoke.r,ts,0.37);
     cv.line(198,86,1556,86,1,'#b3b8bd44');
     text(cv,'EXHAUST',212,122,13,C.muted);bold(cv,'Exhaust Flap',212,154,28);
-    chip(cv,sim?'SIMULATION':control.armed?'ARMED':'DISARMED',420,132,sim?C.amber:control.armed?C.red:'#9aa0a6');
+    const ready=sim||control.ready;chip(cv,sim?'SIMULATION':ready?'READY':control.busy?'DETECTING':'NOT DETECTED',420,132,sim?C.amber:ready?C.accent:C.amber);
     const modes=[['Auto','OEM'],['Open','OPEN'],['Closed','CLOSED']].map((s)=>({label:s[0],key:'flap-'+s[1],action:()=>a.control('exhaust',s[1]),
         selected:flap.desired===s[1]&&flap.acknowledged===true,pending:flap.desired===s[1]&&flap.pending}));
     segmented(cv,modes,212,178,540,54);
-    const flapLine=flap.error||(sim?'Simulation · flap '+(flap.actual==='OEM'?'auto':flap.actual?flap.actual.toLowerCase():'not set')+'. Choose Vehicle mode in Settings to drive the real flap.':
-        !control.armed?'Arm the session, then pick a mode.':flap.pending?'Sending request...':flap.acknowledged==null?'Armed - tap a mode or use the controller.':
+    const flapLine=flap.error||(sim?'Desktop simulation · flap '+(flap.actual==='OEM'?'auto':flap.actual?flap.actual.toLowerCase():'not set')+'. Nothing is sent to a car.':
+        !control.ready?(control.busy?'Looking for the exhaust flap on the DME...':'Waiting for the DME - starts by itself with the ignition on.'):flap.pending?'Sending...':flap.acknowledged==null?'Ready - tap a mode or use the controller.':
         'DME '+(flap.acknowledged?'accepted':'did not accept')+' · ECU read-back: '+(flap.readback||'Unknown'));
     wrap(flapLine,92,2).forEach((l,i)=>text(cv,l,212,259+i*19,15,flap.error?C.amber:'#c9cdd1'));
-    button(cv,sim?'Change mode':control.busy?'Detecting...':control.armed?'Disarm':'Arm session',1388,100,168,40,sim?()=>a.settings():()=>a.armControls(),'arm-session',control.armed);
-    if(!sim&&control.armed)button(cv,'Recheck',1388,148,168,40,()=>a.recheckControls(),'recheck-link');
-    // ASD + start-stop: only switchable in simulation; on a stock car they are shown as unavailable.
+    if(!sim&&!control.ready&&!control.busy)button(cv,'Retry',1388,100,168,40,()=>a.recheckControls(),'recheck-link');
+    // Hold + Close guard: real settings of the flap automation (ec_auto.js).
+    const hold=a.ctx.settings.get('hold')!=='off',limit=a.ctx.settings.get('closeLimit');
     card(cv,184,312,680,60);card(cv,882,312,688,60);
-    for(let i=0;i<7;i++){const h=[8,16,26,18,30,14,8][i];cv.line(212+i*6,342-h/2*0.8,212+i*6,342+h/2*0.8,3,C.text);}
-    bold(cv,'Active Sound',268,337,20);
-    text(cv,sim?'Simulation: '+(asd.actual?'On':'Off'):'Not available on stock software',268,361,14,C.muted);
-    toggle(cv,755,327,sim&&asd.actual,sim);if(sim)cv.target(744,314,100,56,()=>a.control('asd',!asd.desired),'asd-toggle',10);
-    cv.arc(925,342,15,18,0,360,C.text);bold(cv,'A',925,348,16,C.text,'center');bold(cv,'Start-Stop Memory',966,337,20);
-    text(cv,sim?'Simulation: '+(ss.actual?'Remember':'Off'):'Not available on stock software',966,361,14,C.muted);
-    toggle(cv,1467,327,sim&&ss.actual,sim);if(sim)cv.target(1456,314,100,56,()=>a.control('startStop',!ss.desired),'startstop-toggle',10);
+    cv.arc(225,342,13,16,40,320,C.text);cv.fill([[236,328],[245,336],[233,340]],C.text);
+    bold(cv,'Hold Flap Position',268,337,20);
+    text(cv,hold?'Re-sends Open / Closed every 15 s so the DME keeps it':'Off - the DME returns to auto after about 20 s',268,361,14,C.muted);
+    toggle(cv,755,327,hold,true);cv.target(744,314,100,56,()=>a.cycleSetting('hold'),'hold-toggle',10);
+    cv.arc(925,342,15,18,-120,120,C.text);cv.line(925,342,935,333,2,C.text);cv.circle(925,342,3,C.text);
+    bold(cv,'Close Guard',966,337,20);text(cv,'Closed hands back to auto above this engine speed',966,361,14,C.muted);
+    button(cv,limit+' rpm',1404,322,146,40,()=>a.cycleSetting('closeLimit'),'close-guard');
     // Ambient lighting: on the car the highlighted preset is the one the car confirmed.
     card(cv,184,383,1386,86);icon(cv,'system',208,411,29,C.text);bold(cv,'Ambient Lighting',258,418,21);
-    const ambientLine=sim?'Simulation · slot '+(ambient.actual||'--'):ambient.error?ambient.error:ambient.pending?'Sending slot '+ambient.desired+'...':ambient.actual?'Car reports slot '+ambient.actual:control.armed?'Waiting for car colour status':'Arm session to change colour';
+    const ambientLine=sim?'Simulation · slot '+(ambient.actual||'--'):ambient.error?ambient.error:ambient.pending?'Sending slot '+ambient.desired+'...':ambient.actual?'Car reports slot '+ambient.actual:'Waiting for car colour status';
     text(cv,fit(ambientLine,36),258,446,15,ambient.error?C.amber:C.muted);
     const swatch={comfort:C.blue,sport:C.red,night:'#a77be0',custom:'#e3b55c'};
     ['comfort','sport','night','custom'].forEach((p,i)=>{
@@ -240,7 +240,7 @@ function system(cv,a){
         bold(cv,'Service Status',205,247,20);
         const lst=logState(a);
         const rows=[['Vehicle signals',a.demo||a.emulator?'Demo':live?'Receiving':'Waiting',!!live],['Drive logging',lst.state==='rec'?'Recording':lst.state==='waiting'?'Ready':lst.state==='off'?'Off':'Error',lst.state==='rec'],
-            ['Control interface',a.controls.simulated?'Simulation':a.controls.armed?'Armed':'Disarmed',a.controls.armed],['Hybrid data',a.demo?'Demo':lv(a,'hv_soc')!=null||lv(a,'electric_kw')!=null?'Receiving (SME)':'Waiting (SME)',!a.demo&&(lv(a,'hv_soc')!=null||lv(a,'electric_kw')!=null)],['App runtime','Running',true]];
+            ['Exhaust flap',a.controls.simulated?'Simulation':a.controls.ready?'Ready':a.controls.busy?'Detecting':'Not detected',!a.controls.simulated&&a.controls.ready],['Hybrid data',a.demo?'Demo':lv(a,'hv_soc')!=null||lv(a,'electric_kw')!=null?'Receiving (SME)':'Waiting (SME)',!a.demo&&(lv(a,'hv_soc')!=null||lv(a,'electric_kw')!=null)],['App runtime','Running',true]];
         rows.forEach((r,i)=>{const y=282+i*27;cv.circle(212,y-5,5,r[2]?C.green:C.muted);text(cv,r[0],232,y,16,C.text);text(cv,r[1],841,y,16,r[2]?C.green:C.muted,'right');});
     }
     const storage=a.driveLog?a.driveLog.storage():{count:0,mb:0};

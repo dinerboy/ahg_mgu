@@ -21,8 +21,8 @@ function start(ctx) {
     const NAMES={exhaust:'Exhaust flap',asd:'Active Sound',startStop:'Start-stop memory',ambientHardware:'Ambient slot'};
     const said=(v)=>v===true?'on':v===false?'off':v==='OEM'?'auto':String(v).toLowerCase();
     app.control=(id,value)=>app.controls.request(id,value).then((s)=>app.notice(s.source==='simulation'?'Simulation: '+NAMES[id]+' '+said(value):s.error||NAMES[id]+' '+said(value)+' sent - waiting for ECU read-back')).catch((e)=>app.notice(e.message));
-    app.armControls=()=>{const p=app.controls.armed?app.controls.disarm():app.controls.arm();p.then(()=>app.notice(app.controls.armed?'Session armed; press a control to send':'Disarmed; OEM hand-back requested')).catch((e)=>app.notice(e.message));};
-    app.recheckControls=()=>app.controls.recheck().then((ready)=>app.notice(ready?'MG1 flap ready; select Open/Closed/OEM':app.controls.detectionError)).catch((e)=>app.notice(e.message));
+    app.recheckControls=()=>app.controls.recheck().then((ready)=>app.notice(ready?'Exhaust flap ready':app.controls.detectionError)).catch((e)=>app.notice(e.message));
+    app.cycleSetting=(key)=>{const it=(ctx.spec.settings||[]).find((x)=>x.key===key);if(!it)return;const list=it.options.map((o)=>o[0]);ctx.settings.set(key,list[(list.indexOf(ctx.settings.get(key))+1)%list.length]);};
     app.navigate=(i)=>{app.page=M.clamp(i,0,IDS.length-1);ctx.settings.set('page',IDS[app.page]);};
     // Only remember the preset once the colour request went through (or simulation accepted it).
     app.setProfile=(p)=>{const slot=Number(ctx.settings.get('slot_'+p))||1;
@@ -51,7 +51,8 @@ function start(ctx) {
         if(key==='logHz')sampler();if(key==='page')app.page=Math.max(0,IDS.indexOf(ctx.settings.get('page')));app.controls.settingsChanged(key).catch((e)=>app.notice(e.message));});
     ctx.ui.onClick('BTN_PAGE',()=>app.navigate((app.page+1)%IDS.length));ctx.ui.onClick('BTN_PREV',()=>app.navigate((app.page+IDS.length-1)%IDS.length));
     ctx.onTab((i)=>app.navigate(i));
-    if(ctx.ui.onVisible)ctx.ui.onVisible((name,on)=>{if(name==='MAIN'&&app.provider){app.provider.setVisible(on);if(!on)app.controls.disarm().catch((e)=>app.notice(e.message));}});
+    // Hiding the app (navigation, a call) keeps the flap where you put it; only quitting hands it back to the DME.
+    if(ctx.ui.onVisible)ctx.ui.onVisible((name,on)=>{if(name==='MAIN'&&app.provider)app.provider.setVisible(on);});
     provider();
     app.controls.start();
     // Trip and logging run on timers, not the draw loop, so they keep going
@@ -65,7 +66,7 @@ function start(ctx) {
     const loop=ctx.loop('MAIN',4,async()=>{
         const now=Date.now(),dt=M.clamp((now-previous)/1000,0,0.5);previous=now;app.elapsed=(now-app.diagnostics.started)/1000;
         T.setAccent(ctx.settings.get('accent'));const cv=ctx.canvas(1600,520);cv.clear(T.C.bg);
-        G.frame(cv,T.kitTheme(KIT_RED),[],-1,[{text:app.controls.simulated?'SIMULATION':app.controls.armed?'ARMED':'DISARMED',color:app.controls.armed?T.C.red:T.C.amber}]);
+        G.frame(cv,T.kitTheme(KIT_RED),[],-1,[{text:app.controls.simulated?'SIMULATION':app.controls.ready?'FLAP READY':app.controls.busy?'CONNECTING':'NO FLAP',color:app.controls.simulated?T.C.amber:app.controls.ready?T.C.accent:T.C.amber}]);
         V.draw(cv,app,dt);await ctx.ui.image('MAIN_GFX',cv);
     });
     const stop=async()=>{if(app.hybrid)app.hybrid.stop();clearInterval(logTimer);clearInterval(tripTimer);app.driveLog.stop();app.provider.stop();loop.stop();app.gauges.clear();await app.controls.stop();};

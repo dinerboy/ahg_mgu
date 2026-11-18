@@ -1,7 +1,7 @@
 {
   "id": "ahg_control_center",
   "title": "AHG Control Center",
-  "description": "Native ID7 dashboard with live gauges, drive logging and session-armed stock MG1 exhaust and ambient-colour testing.",
+  "description": "After Hours Garage dashboard for ID7: live gauges, hybrid battery, drive logging and stock MG1 exhaust flap and ambient colour control.",
   "version": "1.2.0",
   "vendor": "After Hours Garage",
   "license": "MIT",
@@ -80,7 +80,7 @@
   "settings": [
     {
       "key": "controlMode",
-      "label": "Control testing mode",
+      "label": "Control mode (desktop emulator is always simulation)",
       "type": "choice",
       "default": "vehicle",
       "options": [
@@ -92,27 +92,29 @@
           "vehicle",
           "Vehicle \u2014 stock MG1 flap and ambient slots"
         ]
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "hold",
-      "label": "Hold flap override (armed only)",
+      "label": "Hold flap position",
       "type": "choice",
-      "default": "off",
+      "default": "on",
       "options": [
         [
-          "off",
-          "Off \u2014 DME override times out"
+          "on",
+          "On - re-send Open/Closed every 15 s"
         ],
         [
-          "on",
-          "On \u2014 repeat every 15 seconds"
+          "off",
+          "Off - the DME returns to auto after ~20 s"
         ]
-      ]
+      ],
+      "reset": 2
     },
     {
       "key": "closeLimit",
-      "label": "Close: hand back above RPM",
+      "label": "Close guard: hand back to auto above",
       "type": "choice",
       "default": "4000",
       "options": [
@@ -264,7 +266,8 @@
           "on",
           "On \u2014 labeled demo only"
         ]
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "page",

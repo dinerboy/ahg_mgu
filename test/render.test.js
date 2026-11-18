@@ -19,13 +19,13 @@ const spec=require('../apps/ahg_control_center/app.json');
 const values=spec.settings.reduce((o,s)=>{o[s.key]=s.default;return o;},{});
 function fixture(demo){const store=new M.SignalStore();if(demo)new MockProvider(store,10).sample(2);
     return {store,demo,emulator:true,page:0,elapsed:2,systemMode:'overview',signalOffset:0,trip:new Trip(),gauges:new Gauge(),ctx:{settings:{get:(k)=>values[k]}},
-        controls:{simulated:true,armed:false,getState:(id)=>({source:'simulation',actual:null})},control:()=>{},armControls:()=>{},
+        controls:{simulated:true,armed:false,ready:false,getState:(id)=>({source:'simulation',actual:null})},control:()=>{},armControls:()=>{},
         diagnostics:{started:Date.now(),entries:['DEMO provider'],update:()=>({cpu:10,ram:40,storage:30})},accent:()=> '#d51e28',navigate:()=>{},setProfile:()=>{},refresh:()=>{},resetTrip:()=>{},toggleDisplay:()=>{},settings:()=>{},exportReport:()=>{}};}
 for(const demo of [true,false])for(let page=0;page<5;page++)test('SDK records page '+page+' / '+(demo?'demo':'no data')+' with safe input targets',()=>{
     const state=fixture(demo);state.page=page;const cv=new Recorder(1600,520);V.draw(cv,state,1/60);
     assert.ok(cv.words().length>100);assert.ok(cv.words().byteLength<200000);
     for(const t of cv.targets){assert.ok(t.x>=12&&t.y>=38&&t.x+t.w<=1588&&t.y+t.h<=477,JSON.stringify(t));}
-    if(page===1){['flap-OPEN','flap-OEM','flap-CLOSED','asd-toggle','startstop-toggle','arm-session'].forEach((key)=>assert.ok(cv.targets.some((t)=>t.key===key),key));}state.gauges.clear();
+    if(page===1){['flap-OPEN','flap-OEM','flap-CLOSED','hold-toggle','close-guard'].forEach((key)=>assert.ok(cv.targets.some((t)=>t.key===key),key));}state.gauges.clear();
 });
 test('gauge caches static geometry, clamps the needle and removes it for stale data',()=>{
     const g=new Gauge(),spec=M.DEFINITIONS.oil,cv=new Recorder(1600,520),r={value:900,quality:'live',source:'mgu'};
@@ -37,7 +37,7 @@ test('gauge caches static geometry, clamps the needle and removes it for stale d
     g.draw(cv,'oil',spec,Object.assign({},r,{quality:'stale'}),300,250,170,0.1);assert.equal(g.needle.oil,undefined);g.clear();
 });
 test('vehicle controls expose a recheck action and retain a readable blocked reason',()=>{
-    const state=fixture(false);state.page=1;state.controls.simulated=false;state.controls.armed=true;
+    const state=fixture(false);state.page=1;state.controls.simulated=false;state.controls.armed=true;state.controls.ready=false;
     state.controls.getState=(id)=>({source:'vehicle',actual:null,error:id==='exhaust'?'Diagnostic link unavailable':null});
     state.recheckControls=()=>{};
     const cv=new Recorder(1600,520);V.draw(cv,state,1/60);

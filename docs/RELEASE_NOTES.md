@@ -15,7 +15,9 @@ AHG Control Center 1.2.0 - drive logging and UI cleanup.
 - After Hours Garage branding from the owner's identity package: primary logo on Home, AHG monogram in the side menu and as the app icon, matte black / off white palette.
 - New Accent colour setting: Neon Lime (brand, default), Sport Red, Ice Blue, Night Amber, Violet, Off White. Meaning colours (hot zones, ARMED, REC) stay fixed.
 - HV charge / 12 V no longer flicker to stale between their slower reads.
-- 45 automated checks, including drive-log CSV/summary tests.
+- Car build always ready: no Arm button, demo data or simulation switch on the head unit (simulation is the desktop emulator). Read-only DME detection at startup, retried by itself; nothing is sent until a mode is pressed. Hiding the app no longer hands the flap back; quitting does.
+- ASD / start-stop switches removed (never available on stock software). Their row is now Hold Flap Position (default on, reset once) and Close Guard (tap to change the rpm).
+- 46 automated checks, including drive-log CSV/summary tests.
 
 AHG Control Center 1.1.1 fixes control status, diagnostic reconnect and live-signal freshness problems found after the first physical-car test.
 
