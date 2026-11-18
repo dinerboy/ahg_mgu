@@ -8,9 +8,11 @@ AHG Control Center 1.2.0 - drive logging and UI cleanup.
 - Needle damping uses real frame time, up to 0.5 s; previously it was capped at 0.1 s, which made needles lag about 2.5x at 4 fps.
 - Larger text throughout. Flap status wraps instead of being cut off. Messages no longer cover the title. The status bar shows Flap/Mode/Speed/Oil/Trip/Log. The app log and signal viewer are paged. Version strings come from app.json.
 - Controls polish: the exhaust photo is now the full hero of the flap card (the line-drawn pipe icon is gone), with a segmented Auto/Open/Closed control, a status chip, colour swatches for ambient presets and plain-English messages.
-- Animated exhaust smoke on the hero photo: Open = right tailpipe, Closed = left tailpipe, Auto = a light wisp from both. On the car it follows the DME read-back (22 62FD), not the button press.
+- Animated exhaust smoke on the hero photo: Open = both tailpipes, Closed = left tailpipe, Auto = a light wisp from both. On the car it follows the DME read-back (22 62FD), not the button press.
 - Flap command reviewed: byte-identical to upstream Engine Config (2F 60FD 03 03E8 open, 2F 60FD 03 2328 close, 2F 60FD 00 hand-back to DME 0x12), pinned by tests through the full Controller -> DiagLink path.
-- 38 automated checks, including drive-log CSV/summary tests.
+- Real data from idrive7-apps: boost gauge from the sport display (passive), HV battery charge / voltage / current -> electric power and recuperation, and 12 V voltage via read-only diagnostic reads (kit/readonly-diag refuses anything but 0x22), HV temperature and eDRIVE needle (passive). Hybrid page is live again, next to Drive (5 pages). Home defaults: Boost, Oil, Coolant, RPM (saved choices reset once).
+- Smoke: Open now smokes from both tips.
+- 44 automated checks, including drive-log CSV/summary tests.
 
 AHG Control Center 1.1.1 fixes control status, diagnostic reconnect and live-signal freshness problems found after the first physical-car test.
 

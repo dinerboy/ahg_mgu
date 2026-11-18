@@ -1,6 +1,6 @@
 'use strict';
 const DEFINITIONS = {
-    boost: {label:'Boost',unit:'bar',min:-1,max:2,major:0.5,minor:0.1,decimals:2,hot:1.5},
+    boost: {label:'Boost',unit:'bar',min:0,max:2,major:0.5,minor:0.1,decimals:2,hot:1.5},
     oil: {label:'Oil temperature',unit:'°C',min:50,max:150,major:20,minor:5,decimals:0,hot:125},
     coolant: {label:'Coolant',unit:'°C',min:50,max:130,major:20,minor:5,decimals:0,hot:110},
     voltage: {label:'12 V system',unit:'V',min:10,max:16,major:1,minor:0.2,decimals:1,hot:15},
@@ -9,7 +9,8 @@ const DEFINITIONS = {
     hv_soc:{label:'HV battery',unit:'%',min:0,max:100,decimals:0},
     ev_range:{label:'EV range',unit:'km',decimals:0}, electric_kw:{label:'Electric power',unit:'kW',decimals:1},
     regen_kw:{label:'Recuperation',unit:'kW',decimals:1}, fuel:{label:'Trip consumption',unit:'L/100 km',decimals:1},
-    energy_used:{label:'Trip energy',unit:'kWh',decimals:1}, electric_share:{label:'Electric distance',unit:'%',decimals:0},
+    energy_used:{label:'Trip energy',unit:'kWh',decimals:1}, regen_energy:{label:'Recovered energy',unit:'kWh',decimals:1},
+    hv_v:{label:'HV voltage',unit:'V',decimals:0}, hv_temp:{label:'HV battery temp',unit:'°C',decimals:0}, edrive_pct:{label:'eDRIVE needle',unit:'%',decimals:0}, electric_share:{label:'Electric distance',unit:'%',decimals:0},
     drive_source:{label:'Drive source',unit:''}, drive_mode:{label:'Drive mode',unit:''},
     charging:{label:'Charging',unit:''}, charge_energy:{label:'Last charge energy',unit:'kWh',decimals:1},
     manifold_bar:{label:'Manifold absolute',unit:'bar abs'}, baro_bar:{label:'Atmospheric',unit:'bar abs'}

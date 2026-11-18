@@ -7,7 +7,13 @@ The owner's later request enables control testing, superseding the original read
 | RPM | CDS.statusEngineSpeed2.actualValueRPMEngineCrankshaft × 0.25 | Invalid 65535 rejected; stale after 3 seconds |
 | Oil / coolant | CDS.statusEngineTemperature; raw − 48 | Invalid 255 rejected; exact firmware needs checking |
 | Speed | Vehicle2.statusCarSpeed2.speedVehicleCentreOfGravity / 64 | Invalid 65535 rejected |
-| Boost, 12V, HV and hybrid metrics | No verified real source wired | Labelled demo only; unavailable otherwise |
+| Boost | FES.statusSwitchDriveDynamicSport2.displayBoostPressure (sport display), 0.01 bar / 0.1 psi per the car's pressure unit (Vehicle.statusNewCurrentUnitsStatusExt) | Passive. Scaling marked best-guess upstream (live_data); 255 = no value |
+| HV charge | SME 0x07, 22 DDBC, 0.1 % | Read-only (kit/readonly-diag). From upstream edrive, set up on X5 45e; not yet confirmed on G30 530e |
+| Electric power / recuperation | SME 22 DDB4 (V, fallbacks DD68/DD66/DDEF) x 22 DD69 (A, signed) | Read-only, 1 s. Positive = driving, negative = recuperation/charging |
+| HV voltage / temperature | SME voltage above, or LSCDataSink.statusHighVoltageStorage; Efficiencytainment2.statusBatteryTemperature raw - 50 | Temperature scaling from the X5 45e |
+| eDRIVE needle | Efficiencytainment2.statusPowerRelativHybrid | Passive, % of the cluster scale |
+| 12 V voltage | DME 22 F442 (or OBD 01 42, IBS 402B/5853, EGS 0x18) | Read-only, every 5 s |
+| Drive source, charging, trip energy, electric share | Derived from engine speed, battery power and speed | No EV range: no passive signal; upstream learns it from driving |
 | Fault status | No diagnostic scan | Always not scanned |
 | Exhaust flap | Engine Config MG1 adapter; InternalTasu, DME 0x12 | Session armed, compatible positive capability probe; stock support reported upstream on MG1/B48, not this exact car |
 | Ambient colour | ComfortFunctionIuK.ambientLightInteriorColour setter and statusAmbientLightInteriorColour read-back | Session armed, slot 1–12; other fields unfilled as upstream; colours vary |

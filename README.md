@@ -39,6 +39,6 @@ npm run package
 - **Controls:** Engine Config MG1 Open/Closed/OEM with a session Arm, fresh-RPM close guard and OEM hand-back. Ambient colour slots: the highlighted preset is the one the car confirms. ASD and start-stop show as unavailable on stock software instead of fake switches.
 - **System:** live-signal count, logging state, saved log storage, a paged app log and signal viewer, and a diagnostics export.
 - Stale detection, unavailable states and bounded needle movement. Needle damping now follows real frame time, so needles keep up under the software renderer.
-- Hybrid, boost and voltage readings are still demo-only until a verified source is supplied. Vehicle fault status is not scanned.
+- **Hybrid:** HV charge, electric power, recuperation, HV voltage/temperature, 12 V, derived drive source and trip energy. Sources come from idrive7-apps (see CAPABILITIES); battery identifiers are not yet confirmed on a G30 530e. **Boost** comes from the sport display. Vehicle fault status is not scanned.
 
-See [capabilities and limitations](docs/CAPABILITIES.md), [validation](docs/VALIDATION.md), and [provenance/licenses](docs/PROVENANCE.md). [Controls](screenshots/02-controls.png) · [Drive](screenshots/03-drive.png) · [System](screenshots/04-system.png).
+See [capabilities and limitations](docs/CAPABILITIES.md), [validation](docs/VALIDATION.md), and [provenance/licenses](docs/PROVENANCE.md). [Controls](screenshots/02-controls.png) · [Hybrid](screenshots/03-hybrid.png) · [Drive](screenshots/04-drive.png) · [System](screenshots/05-system.png).

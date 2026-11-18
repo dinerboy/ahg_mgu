@@ -23,7 +23,7 @@
       "statusCarSpeed2": "rs"
     },
     "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
-      "_optional": "Vehicle diagnostic controls unavailable",
+      "_optional": "Diagnostic reads (HV battery, 12 V) and vehicle controls unavailable",
       "_instances": "SystemFunctionsInternalTasuInst1",
       "_methods": [
         "sendTasuRequest"
@@ -38,8 +38,22 @@
       "statusAmbientLightInteriorColour": "rs"
     },
     "de.bmw.infotainment.drivingexcitement.FES": {
-      "_optional": "Driving-mode display unavailable",
-      "statusFESVehicleDynamicSwitchHMI": "rs"
+      "_optional": "Driving-mode and boost display unavailable",
+      "statusFESVehicleDynamicSwitchHMI": "rs",
+      "statusSwitchDriveDynamicSport2": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle": {
+      "_optional": "Pressure unit unknown (boost shown as bar)",
+      "statusNewCurrentUnitsStatusExt": "rs"
+    },
+    "de.bmw.infotainment.drivingexcitement.Efficiencytainment2": {
+      "_optional": "HV battery temperature and eDRIVE needle unavailable",
+      "statusBatteryTemperature": "rs",
+      "statusPowerRelativHybrid": "rs"
+    },
+    "de.bmw.infotainment.lsc.LSCDataSink": {
+      "_optional": "HV voltage broadcast unavailable",
+      "statusHighVoltageStorage": "s"
     }
   },
   "screens": [
@@ -271,6 +285,10 @@
           "Hybrid"
         ],
         [
+          "drive",
+          "Drive"
+        ],
+        [
           "system",
           "System"
         ]
@@ -339,7 +357,7 @@
     },
     {
       "key": "boostMax",
-      "label": "Boost scale (bar)",
+      "label": "Boost gauge scale (bar)",
       "type": "number",
       "default": 2,
       "steps": [
@@ -353,8 +371,12 @@
       "key": "gauge1",
       "label": "Primary gauge 1",
       "type": "choice",
-      "default": "rpm",
+      "default": "boost",
       "options": [
+        [
+          "boost",
+          "Boost (sport display)"
+        ],
         [
           "rpm",
           "Engine RPM"
@@ -370,13 +392,9 @@
         [
           "coolant",
           "Coolant temperature"
-        ],
-        [
-          "boost",
-          "Boost (demo only - no car source yet)"
         ]
       ],
-      "reset": 2
+      "reset": 3
     },
     {
       "key": "gauge2",
@@ -399,6 +417,14 @@
         [
           "speed",
           "Vehicle speed"
+        ],
+        [
+          "boost",
+          "Boost (sport display)"
+        ],
+        [
+          "voltage",
+          "12 V system voltage"
         ]
       ]
     },
@@ -423,6 +449,14 @@
         [
           "speed",
           "Vehicle speed"
+        ],
+        [
+          "boost",
+          "Boost (sport display)"
+        ],
+        [
+          "voltage",
+          "12 V system voltage"
         ]
       ]
     },
@@ -430,15 +464,19 @@
       "key": "gauge4",
       "label": "Small gauge 2",
       "type": "choice",
-      "default": "speed",
+      "default": "rpm",
       "options": [
-        [
-          "speed",
-          "Vehicle speed"
-        ],
         [
           "rpm",
           "Engine RPM"
+        ],
+        [
+          "voltage",
+          "12 V system voltage"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
         ],
         [
           "coolant",
@@ -447,13 +485,9 @@
         [
           "oil",
           "Oil temperature"
-        ],
-        [
-          "voltage",
-          "12 V (demo only - no car source yet)"
         ]
       ],
-      "reset": 2
+      "reset": 3
     },
     {
       "key": "layout",

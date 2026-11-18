@@ -1,8 +1,7 @@
 'use strict';
 const T=require('./theme'),M=require('./model'),Art=require('./art');
 const {C,text,bold,card,button,lineIcon,wordmark}=T;
-const PAGES=['Home','Controls','Drive','System'];
-function pageLabel(a,i){return i===2&&a.demo?'Hybrid':PAGES[i];}
+const PAGES=['Home','Controls','Hybrid','Drive','System'];
 function field(a,k,d){return M.format(a.store.get(k),d);}
 function withUnit(a,k,d,unit){const v=field(a,k,d);return v==='--'?v:v+' '+unit;}
 function fit(s,n){s=String(s);return s.length>n?s.slice(0,n-3)+'...':s;}
@@ -24,10 +23,12 @@ function header(cv,a){
     wordmark(cv,30,77,0.72);text(cv,'CONTROL CENTER',29,98,11,C.muted);
     cv.line(158,48,158,470,1,'#333538');
     PAGES.forEach((label,i)=>{
-        const y=111+i*87,on=i===a.page;
-        if(on){cv.card(16,y-8,132,78,5,[[0,'#070708'],[0.45,'#2b0306'],[1,'#740006']]);cv.line(16,y-7,16,y+68,2,C.red);cv.line(18,y+68,146,y+68,1,C.red);}
-        icon(cv,i===2?'hybrid':label.toLowerCase(),69,y+3,27,on?C.text:'#c9cccf');text(cv,pageLabel(a,i),82,y+54,18,C.text,'center');
-        cv.target(16,y-8,132,78,()=>a.navigate(i),'nav-'+i,6);
+        const y=114+i*72,on=i===a.page,col=on?C.text:'#c9cccf';
+        if(on){cv.card(16,y-8,132,66,5,[[0,'#070708'],[0.45,'#2b0306'],[1,'#740006']]);cv.line(16,y-7,16,y+57,2,C.red);cv.line(18,y+57,146,y+57,1,C.red);}
+        if(label==='Drive'){cv.arc(82,y+15,9,11,-90,90,col);cv.line(82,y+15,89,y+8,2,col);cv.circle(82,y+15,2.5,col);}
+        else icon(cv,label.toLowerCase(),70,y+1,24,col);
+        text(cv,label,82,y+47,17,C.text,'center');
+        cv.target(16,y-8,132,66,()=>a.navigate(i),'nav-'+i,6);
     });
     bold(cv,'BMW 530e',870,65,19,C.text,'center');
     const toast=a.toast&&Date.now()<a.toastUntil;
@@ -103,10 +104,10 @@ function controls(cv,a,dt){
     // Round the photo's right corners to match the card.
     [[1558,97,0,90],[1558,288,90,180]].forEach((k)=>{cv.arc(k[0],k[1],11,18,k[2],k[3],C.bg);cv.arc(k[0],k[1],11,12,k[2],k[3],'#2f3337');});
     cv.line(1569,97,1569,288,1,'#2f3337');cv.line(748,86,1558,86,1,'#2f3337');cv.line(748,299,1558,299,1,'#2f3337');
-    // Smoke follows the flap: Open -> right pipe, Closed -> left pipe, Auto -> a light wisp from both.
+    // Smoke follows the flap: Open -> both tips, Closed -> left tip, Auto -> a light wisp from both.
     // On the car it follows the DME read-back, so it only shows what the DME reports.
     const fstate=sim?flap.actual:flap.readback;
-    const target={l:fstate==='CLOSED'?1:fstate==='OPEN'?0:0.3,r:fstate==='OPEN'?1:fstate==='CLOSED'?0:0.3};
+    const target={l:fstate==='CLOSED'||fstate==='OPEN'?1:0.3,r:fstate==='OPEN'?1:fstate==='CLOSED'?0:0.3};
     a.smoke=a.smoke||{l:target.l,r:target.r};
     a.smoke.l=M.damp(a.smoke.l,target.l,(dt||0)*0.25);a.smoke.r=M.damp(a.smoke.r,target.r,(dt||0)*0.25);
     const ts=Date.now()/1000;
@@ -148,27 +149,38 @@ function controls(cv,a,dt){
 function metric(cv,label,value,unit,x,y,w,h,color){
     card(cv,x,y,w,h);text(cv,label,x+22,y+27,16,C.muted);bold(cv,value,x+22,y+h-16,28,color||C.text);text(cv,unit,x+w-18,y+h-18,15,C.muted,'right');
 }
+function lv(a,k){const r=a.store.get(k);return r.quality==='live'&&r.value!=null?r.value:null;}
 function hybrid(cv,a){
-    const soc=a.store.get('hv_soc'),live=soc.quality==='live',cx=347,cy=188,r=95;
+    const soc=a.store.get('hv_soc'),hasSoc=soc.quality==='live',cx=347,cy=188,r=95;
+    const kw=lv(a,'electric_kw'),tag=(k)=>{const q=a.store.get(k);return q.quality==='live'?(q.source==='mock'?'DEMO':'LIVE'):q.quality==='stale'?'STALE':'NO DATA';};
     card(cv,184,85,329,218);cv.circle(cx,cy,r+6,'#060708');cv.arc(cx,cy,r+3,r+6,0,360,'#a6acb1');
-    cv.arc(cx,cy,r-13,r,0,360,'#414445');if(live)cv.arc(cx,cy,r-13,r,0,M.clamp(soc.value,0,100)*3.6,'#4bff41');
-    bold(cv,live?M.format(soc,0)+'%':'--',cx,cy+4,40,C.text,'center');text(cv,'HV Battery',cx,cy+32,15,C.text,'center');text(cv,'DEMO',cx,cy+58,13,C.amber,'center');
+    cv.arc(cx,cy,r-13,r,0,360,'#414445');if(hasSoc)cv.arc(cx,cy,r-13,r,0,M.clamp(soc.value,0,100)*3.6,soc.value<15?C.amber:'#4bff41');
+    bold(cv,hasSoc?M.format(soc,0)+'%':'--',cx,cy+4,40,C.text,'center');text(cv,'HV Battery',cx,cy+32,15,C.text,'center');
+    const st=tag('hv_soc');text(cv,st,cx,cy+58,13,st==='LIVE'?C.blue:C.amber,'center');
     metric(cv,'Drive Source',field(a,'drive_source'),'',530,85,348,86,C.blue);
-    metric(cv,'EV Range',field(a,'ev_range',0),'km',894,85,294,86);
-    metric(cv,'Electric Power',field(a,'electric_kw',1),'kW',530,187,319,76);
+    const t=lv(a,'hv_temp');metric(cv,'HV Battery',withUnit(a,'hv_v',0,'V'),t!=null?Math.round(t)+' °C':'',894,85,294,86);
+    metric(cv,'Electric Power',field(a,'electric_kw',1),'kW',530,187,319,76,kw!=null&&kw<0?C.green:null);
     metric(cv,'Recuperation',field(a,'regen_kw',1),'kW',865,187,323,76,C.green);
-    Art.draw(cv,'car',240,220,620,207);
-    cv.line(395,396,760,396,2,C.blue);
-    for(let i=0;i<6;i++)cv.card(550+i*18,384,16,25,2,[[0,'#8eeaff'],[0.45,'#258cd1'],[1,'#0b478d']]);
-    for(let i=0;i<4;i++){const x=400+((a.elapsed*38+i*78)%320);cv.fill([[x,392],[x+8,396],[x,400]],'#5cc7fa');}
-    text(cv,'Demo data - no hybrid signal source on the car yet',1188,425,14,C.amber,'right');
-    card(cv,1204,85,366,93);bold(cv,'Trip (This App Session)',1223,115,20);text(cv,'DEMO readings',1223,150,15,C.muted);
+    Art.draw(cv,'car',300,270,480,160);
+    // Energy flow, from measured battery power: blue to the wheels when driving, green back when recuperating.
+    if(kw!=null&&Math.abs(kw)>0.5){
+        const col=kw>0?C.blue:C.green,dir=kw>0?1:-1,speed=16+Math.min(60,Math.abs(kw)*2.4);
+        cv.line(420,405,702,405,2,col);
+        for(let i=0;i<6;i++)cv.card(540+i*14,396,12,19,2,kw>0?[[0,'#8eeaff'],[0.45,'#258cd1'],[1,'#0b478d']]:[[0,'#b9ffc0'],[0.45,'#3fcf55'],[1,'#13702a']]);
+        for(let i=0;i<4;i++){const o=((a.elapsed*speed+i*62)%248),x=dir>0?424+o:672-o;cv.fill(dir>0?[[x,401],[x+7,405],[x,409]]:[[x+7,401],[x,405],[x+7,409]],col);}
+    }else{for(let i=0;i<6;i++)cv.card(540+i*14,396,12,19,2,[[0,'#6d747b'],[1,'#2c3135']]);}
+    if(!a.demo&&!hasSoc&&kw==null)text(cv,'Waiting for the HV battery (SME). Signal Viewer on System shows what arrives.',1188,425,14,C.amber,'right');
+    else text(cv,'Illustration only',1188,425,13,C.muted,'right');
+    card(cv,1204,85,366,93);bold(cv,'Energy (This Drive)',1223,115,20);text(cv,a.demo?'DEMO readings':'Measured battery power',1223,150,15,C.muted);
     card(cv,1204,191,366,218);
-    const rows=[['Distance',a.trip.known?a.trip.km.toFixed(1)+' km':'--'],['Consumption',field(a,'fuel',1)+' L/100 km'],['Electric share',field(a,'electric_share',0)+'%'],['Energy used',field(a,'energy_used',1)+' kWh']];
+    const rows=[['Distance',a.trip.known?a.trip.km.toFixed(1)+' km':'--'],['Electric share',withUnit(a,'electric_share',0,'%')],['Energy used',withUnit(a,'energy_used',2,'kWh')],['Recovered',withUnit(a,'regen_energy',2,'kWh')]];
     rows.forEach((row,i)=>{text(cv,row[0],1223,226+i*49,16,C.text);bold(cv,row[1],1550,226+i*49,16,C.text,'right');if(i<3)cv.line(1219,241+i*49,1555,241+i*49,1,'#36393d');});
     card(cv,184,429,1386,40);icon(cv,'hybrid',200,439,19,C.text);
-    text(cv,'Charging',237,455,15,C.text);text(cv,field(a,'charging'),355,455,15,C.text);
-    text(cv,'Energy added',890,455,15,C.muted);text(cv,field(a,'charge_energy',1)+' kWh (demo)',1040,455,15,C.text);
+    const src=lv(a,'drive_source');
+    text(cv,'Charging',237,455,15,C.muted);bold(cv,src==='Charging'?'Charging':src?'Not charging':'--',330,455,15,src==='Charging'?C.green:C.text);
+    text(cv,'12 V battery',560,455,15,C.muted);bold(cv,withUnit(a,'voltage',1,'V'),680,455,15,C.text);
+    const e=lv(a,'edrive_pct');text(cv,'eDRIVE',900,455,15,C.muted);bold(cv,e==null?'--':e<0?'Regen '+(-e)+'%':e+'%',980,455,15,e!=null&&e<0?C.green:C.text);
+    text(cv,'HV voltage',1200,455,15,C.muted);bold(cv,withUnit(a,'hv_v',0,'V'),1320,455,15,C.text);
 }
 // Real-data page: what the car actually provides plus the drive log.
 function drive(cv,a){
@@ -227,7 +239,7 @@ function system(cv,a){
         bold(cv,'Service Status',205,247,20);
         const lst=logState(a);
         const rows=[['Vehicle signals',a.demo||a.emulator?'Demo':live?'Receiving':'Waiting',!!live],['Drive logging',lst.state==='rec'?'Recording':lst.state==='waiting'?'Ready':lst.state==='off'?'Off':'Error',lst.state==='rec'],
-            ['Control interface',a.controls.simulated?'Simulation':a.controls.armed?'Armed':'Disarmed',a.controls.armed],['Hybrid data','No car source (demo only)',false],['App runtime','Running',true]];
+            ['Control interface',a.controls.simulated?'Simulation':a.controls.armed?'Armed':'Disarmed',a.controls.armed],['Hybrid data',a.demo?'Demo':lv(a,'hv_soc')!=null||lv(a,'electric_kw')!=null?'Receiving (SME)':'Waiting (SME)',!a.demo&&(lv(a,'hv_soc')!=null||lv(a,'electric_kw')!=null)],['App runtime','Running',true]];
         rows.forEach((r,i)=>{const y=282+i*27;cv.circle(212,y-5,5,r[2]?C.green:C.muted);text(cv,r[0],232,y,16,C.text);text(cv,r[1],841,y,16,r[2]?C.green:C.muted,'right');});
     }
     const storage=a.driveLog?a.driveLog.storage():{count:0,mb:0};
@@ -236,5 +248,5 @@ function system(cv,a){
     const actions=[['App Log',()=>{a.systemMode='logs';a.logOffset=0;}],['Signal Viewer',()=>{a.systemMode='signals';a.logOffset=0;}],['Export Diagnostics',()=>a.exportReport()],['Settings',()=>a.settings()]];
     actions.forEach((r,i)=>button(cv,r[0],184+i*350,425,336,44,r[1],'system-'+i));
 }
-function draw(cv,a,dt){header(cv,a);[home,controls,a.demo?hybrid:drive,system][a.page](cv,a,dt);}
+function draw(cv,a,dt){header(cv,a);[home,controls,hybrid,drive,system][a.page](cv,a,dt);}
 module.exports={draw,PAGES,wrap,fit};
