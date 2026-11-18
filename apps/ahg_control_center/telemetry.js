@@ -1,5 +1,5 @@
 'use strict';
-const M=require('./model');
+const M=require('./model'),E=require('./engine');
 const CDS='de.bmw.infotainment.vehicle.CDS', VEHICLE='de.bmw.infotainment.vehicle.Vehicle2';
 const FES='de.bmw.infotainment.drivingexcitement.FES',UNITS='de.bmw.infotainment.vehicle.Vehicle';
 const BDS='de.bmw.infrastructure.analytics.BasicDataSet',EFF='de.bmw.infotainment.drivingexcitement.Efficiencytainment2',LSC='de.bmw.infotainment.lsc.LSCDataSink';
@@ -25,6 +25,9 @@ class MockProvider {
             electric_kw:18*Math.sin(s*0.18),regen_kw:Math.min(0,18*Math.sin(s*0.18)),fuel:4.1,
             energy_used:4.2,electric_share:68,drive_source:'Hybrid',drive_mode:'Sport',charging:'Not connected',charge_energy:9.8,
             baro_bar:1.013,manifold_bar:1.013+0.78+0.64*Math.sin(s*0.3),
+            iat:34+6*wave,hpfp:60+240*wave,lpfp:5.2-0.3*wave,timing:8+14*(1-wave),load:22+150*wave,load_target:20+155*wave,
+            boost_target:0.05+1.15*wave,boost_actual:0.03+1.1*wave+0.04*Math.sin(s*2),eng_torque:60+290*wave,
+            eng_power:(60+290*wave)*(1200+4300*wave)/9549,power_pct:Math.round(15+75*wave),misfire_total:3,
             gearbox:78+4*Math.sin(s*0.04),hv_v:352-0.12*18*Math.sin(s*0.18),hv_temp:24,edrive_pct:Math.round(60*Math.sin(s*0.18)),regen_energy:0.6};
         Object.keys(data).forEach((k)=>this.store.put(k,data[k],'mock','Deterministic emulator/demo model'));
         const boost=M.boostFrom(this.store.get('manifold_bar'),this.store.get('baro_bar'));
@@ -60,6 +63,20 @@ class MguProvider {
             // a value that never moves (0 with the sport display off) is not trusted, as car_vitals
             if(raw!==0)this.fesBoostMoved=true;if(!this.fesBoostMoved)return;
             put('boost',M.finite(raw)&&raw!==255?raw*k:null,FES+'.statusSwitchDriveDynamicSport2.displayBoostPressure ('+(this.pressUnit||'BAR?')+')');
+        },
+        // sport display power (% of the car's maximum) and crankshaft torque (car_vitals config.scaling sportPct / torque)
+        statusVehicleDynamicEngine:(v)=>{
+            const p=v&&v.displaySportEnginePower;
+            put('power_pct',convert(p,1,0,255,0,120),FES+'.statusVehicleDynamicEngine.displaySportEnginePower (%)');
+        },
+        statusActualValueTorque2:(v)=>{
+            const raw=v&&v.actualValueTorqueCrankshaft;
+            if(!M.finite(raw)||raw===65535||raw>=4095){put('eng_torque',null,FES+'.statusActualValueTorque2');return;}
+            const tq=Math.max(0,raw*0.5-1023.5);
+            put('eng_torque',tq,FES+'.statusActualValueTorque2.actualValueTorqueCrankshaft * 0.5 - 1023.5');
+            const r=this.store.get('rpm');
+            // engine power from crank torque x engine speed (the 530e's e-motor sits behind the crank: engine only)
+            if(r.quality==='live'&&M.finite(r.value))put('eng_power',r.value>400?E.powerKw(tq,r.value):0,'Crank torque x engine speed / 9549');
         }},1000,generation);
         this.subscribe(UNITS,{statusNewCurrentUnitsStatusExt:(v)=>{
             const x=v&&v.unitOfMeasurementAirPressure;this.pressUnit=PRESS_UNITS[x]||(['BAR','KPA','PSI'].indexOf(x)>=0?x:null);
@@ -107,6 +124,6 @@ class MguProvider {
     setVisible() {}
     stop() { this.stopped=true;this.generation++;this.timers.forEach(clearTimeout);this.timers=[];
         this.subscriptions.forEach((s)=>{if(s.shutdown)s.shutdown();});this.subscriptions=[]; }
-    capabilities() { return {mode:'read-only',signals:['rpm','oil','coolant','speed','drive_mode','boost','hv_temp','edrive_pct','hv_v'],vehicleWrites:false}; }
+    capabilities() { return {mode:'read-only',signals:['rpm','oil','coolant','speed','drive_mode','boost','hv_temp','edrive_pct','hv_v','power_pct','eng_torque','eng_power'],vehicleWrites:false}; }
 }
 module.exports={MockProvider,MguProvider,convert};

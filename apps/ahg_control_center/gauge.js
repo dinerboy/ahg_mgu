@@ -56,6 +56,31 @@ class Gauge {
         const state=live?(reading.source==='mock'?'DEMO':'LIVE'):reading.quality==='stale'?'STALE':'NO SIGNAL';
         T.text(cv,state,cx,cy+r+12,13,live?(reading.source==='mock'?T.C.amber:T.C.blue):T.C.amber,'center');
     }
+    /**
+     * Two needles on one face: the target as a hollow outline, the actual filled in the accent (boost target vs
+     * actual). Readout: the actual, with the target and the difference under the dial.
+     */
+    dual(cv,id,spec,target,actual,cx,cy,r,dt) {
+        cv.blit(this.face(spec,r),cx-r-8,cy-r-8);
+        const needle=(key,reading)=>{
+            const live=reading.quality==='live'&&M.finite(reading.value);
+            if(!live){delete this.needle[key];return null;}
+            const t=M.clamp(reading.value,spec.min,spec.max);let v=this.needle[key];
+            v=v==null?t:M.damp(v,t,dt);this.needle[key]=v;return v;
+        };
+        const tv=needle(id+':t',target),av=needle(id+':a',actual);
+        const shape=(value,l,w)=>{const a=M.angle(value,spec.min,spec.max)*RAD,ux=Math.cos(a),uy=Math.sin(a),nx=-uy,ny=ux;
+            const p=(L,W)=>[cx+ux*L+nx*W,cy+uy*L+ny*W];return [p(r*l,0),p(r*0.08,r*w),p(-r*0.16,r*w*0.8),p(-r*0.18,0),p(-r*0.16,-r*w*0.8),p(r*0.08,-r*w)];};
+        if(tv!=null){const poly=shape(tv,0.84,0.034);cv.polyline(poly.concat([poly[0]]),2,T.C.text);}
+        if(av!=null){const poly=shape(av,0.76,0.027);cv.fill(poly.map((pt)=>[pt[0]+3,pt[1]+3]),'#000000aa');cv.fill(poly,T.C.accent);}
+        cv.circle(cx,cy,r*0.105,'#11151b');cv.arc(cx,cy,r*0.095,r*0.105,180,350,'#87909b');cv.circle(cx,cy,r*0.067,'#222831');
+        T.bold(cv,spec.label,cx,cy+r*0.28,20,T.C.text,'center');
+        T.text(cv,spec.unit,cx,cy+r*0.42,15,T.C.muted,'center');
+        const rw=150,rh=34,ry=cy+r*0.53;
+        cv.roundRect(cx-rw/2,ry,rw,rh,5,'#7a838e');cv.roundRect(cx-rw/2+1,ry+1,rw-2,rh-2,4,'#06080b');
+        T.bold(cv,av==null?'--':M.format(actual,spec.decimals)+' '+spec.unit,cx,ry+rh*0.72,20,av==null?T.C.muted:T.C.text,'center');
+        return {target:tv,actual:av};
+    }
     clear() {this.keys.forEach((k)=>dropLayer(this.faces[k]));this.faces={};this.keys=[];this.needle={};}
 }
 module.exports={Gauge,point};

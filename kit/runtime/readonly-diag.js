@@ -9,6 +9,7 @@
  *   0x22 F1 50      the same to all units at once (functional 0xDF): which units are there,
  *                   and their SGBD index (what BMW's diagnostic tools identify a unit by)
  *   0x01 / 0x09     OBD-II current data / vehicle information, one PID, to one unit
+ *   0x06            OBD-II monitor test results (misfire counts), one MID, only with { monitors: true }
  *
  * Anything else throws before it reaches the transport: sessions (10), resets (11), clearing
  * faults (14), security access (27), communication control (28), dynamic identifiers (2C),
@@ -33,6 +34,9 @@
 const { Diag, hex, NRC, ALL } = require('./diag');
 
 const READ = Object.freeze({ 0x22: 'ReadDataByIdentifier', 0x01: 'OBD current data', 0x09: 'OBD vehicle information' });
+// OBD service 06 (on-board monitoring test results, e.g. misfire counts per cylinder) is reading too, but only
+// for a link opened with { monitors: true }: one monitor id (MID) to one unit
+const MONITORS = 0x06;
 const MAX_DIDS = 8;                   // identifiers in one 22 request
 const DISCOVER = Object.freeze([0xF1, 0x50]);
 const LINKS = new WeakMap();          // ReadOnlyDiag -> its Diag, out of reach of the app
@@ -41,9 +45,9 @@ const byte = (b) => Number.isInteger(b) && b >= 0 && b <= 0xFF;
 const show = (n) => (Number.isInteger(n) ? hex(n) : String(n));
 
 /** Throws unless the request only reads (see the top of this file). Exported for the tests. */
-function check(target, sid, data, functional) {
+function check(target, sid, data, functional, monitors) {
     if (!Array.isArray(data) || !data.every(byte)) throw new Error('read-only: bad request bytes');
-    if (!byte(sid) || !READ[sid]) throw new Error('read-only: service ' + show(sid) + ' is not allowed');
+    if (!byte(sid) || !(READ[sid] || (monitors && sid === MONITORS))) throw new Error('read-only: service ' + show(sid) + ' is not allowed');
     if (!byte(target)) throw new Error('read-only: bad address ' + show(target));
     if (sid === 0x22 && (data.length < 2 || data.length > 2 * MAX_DIDS || data.length % 2)) throw new Error('read-only: 22 takes 1 to ' + MAX_DIDS + ' identifiers');
     if (sid !== 0x22 && data.length !== 1) throw new Error('read-only: ' + show(sid) + ' takes exactly one PID');
@@ -66,6 +70,7 @@ class ReadOnlyDiag {
         LINKS.set(this, diag);
         this.log = log;
         this.gapMs = (opts && opts.gapMs) || 25;
+        this.monitors = !!(opts && opts.monitors);
         this.silentAfter = (opts && opts.silentAfter) || 5;
         this.misses = {};             // address -> requests in a row without an answer
         this.stats = { sent: 0, replies: 0, missed: 0, silent: 0, blocked: 0, ms: 0, timed: 0 };
@@ -91,7 +96,7 @@ class ReadOnlyDiag {
     /** Physical request (kit/dids.js calls this): the unit's reply bytes, or null. */
     physical(target, sid, data, timeoutMs, accept) {
         const d = Array.isArray(data) ? data.slice() : data;          // checked = sent: no change after the check
-        try { check(target, sid, d, false); } catch (e) { return this.blocked(e); }
+        try { check(target, sid, d, false, this.monitors); } catch (e) { return this.blocked(e); }
         if (this.silent(target)) return Promise.resolve(null);
         return this.queue(async () => {
             this.stats.sent++;

@@ -23,7 +23,7 @@ def main():
         manifest = json.load(tar.extractfile('package/manifest.json'))['proxies']
         assert manifest['com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu']['methods'] == ['sendTasuRequest']
         assert manifest['de.bmw.infotainment.misc.ComfortFunctionIuK']['attributes']['ambientLightInteriorColour'] == 'w'
-        for module in ('controls', 'ec_controller', 'ec_diaglink', 'ec_adapters', 'ec_real_adapters', 'ec_auto', 'ec_ambient'):
+        for module in ('controls', 'ec_controller', 'ec_diaglink', 'ec_adapters', 'ec_real_adapters', 'ec_auto', 'ec_ambient', 'engine', 'health'):
             assert 'package/javascript/'+module+'.js' in names
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     usb_root = dist/f'usb-{version}'

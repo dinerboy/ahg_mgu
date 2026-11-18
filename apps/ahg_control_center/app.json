@@ -2,7 +2,7 @@
   "id": "ahg_control_center",
   "title": "AHG Control Center",
   "description": "After Hours Garage dashboard for ID7: live gauges, hybrid battery, drive logging and stock MG1 exhaust flap and ambient colour control.",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "vendor": "After Hours Garage",
   "license": "MIT",
   "loggingId": "AHG1",
@@ -38,9 +38,11 @@
       "statusAmbientLightInteriorColour": "rs"
     },
     "de.bmw.infotainment.drivingexcitement.FES": {
-      "_optional": "Driving-mode and boost display unavailable",
+      "_optional": "Driving-mode, boost, power and torque display unavailable",
       "statusFESVehicleDynamicSwitchHMI": "rs",
-      "statusSwitchDriveDynamicSport2": "rs"
+      "statusSwitchDriveDynamicSport2": "rs",
+      "statusVehicleDynamicEngine": "rs",
+      "statusActualValueTorque2": "rs"
     },
     "de.bmw.infotainment.vehicle.Vehicle": {
       "_optional": "Pressure unit unknown (boost shown as bar)",
@@ -412,6 +414,10 @@
           "Home"
         ],
         [
+          "gauges",
+          "Gauges"
+        ],
+        [
           "controls",
           "Controls"
         ],
@@ -426,6 +432,10 @@
         [
           "warmup",
           "Warm-up"
+        ],
+        [
+          "health",
+          "Health"
         ],
         [
           "system",
@@ -659,6 +669,818 @@
         ]
       ],
       "reset": 3
+    },
+    {
+      "key": "gp1",
+      "label": "Gauges page dial 1",
+      "type": "choice",
+      "default": "iat",
+      "options": [
+        [
+          "boost",
+          "Boost"
+        ],
+        [
+          "boost_target",
+          "Boost target"
+        ],
+        [
+          "iat",
+          "Intake air temp"
+        ],
+        [
+          "hpfp",
+          "High pressure fuel"
+        ],
+        [
+          "lpfp",
+          "Low pressure fuel"
+        ],
+        [
+          "timing",
+          "Ignition timing"
+        ],
+        [
+          "load",
+          "Engine load"
+        ],
+        [
+          "eng_power",
+          "Engine power"
+        ],
+        [
+          "eng_torque",
+          "Engine torque"
+        ],
+        [
+          "power_pct",
+          "Sport display power %"
+        ],
+        [
+          "electric_kw",
+          "Electric power"
+        ],
+        [
+          "gearbox",
+          "Gearbox oil"
+        ],
+        [
+          "voltage",
+          "12 V system"
+        ],
+        [
+          "hv_temp",
+          "HV battery temp"
+        ],
+        [
+          "hv_soc",
+          "HV battery charge"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
+        ],
+        [
+          "misfire_total",
+          "Misfires (cycle)"
+        ]
+      ]
+    },
+    {
+      "key": "gp2",
+      "label": "Gauges page dial 2",
+      "type": "choice",
+      "default": "hpfp",
+      "options": [
+        [
+          "boost",
+          "Boost"
+        ],
+        [
+          "boost_target",
+          "Boost target"
+        ],
+        [
+          "iat",
+          "Intake air temp"
+        ],
+        [
+          "hpfp",
+          "High pressure fuel"
+        ],
+        [
+          "lpfp",
+          "Low pressure fuel"
+        ],
+        [
+          "timing",
+          "Ignition timing"
+        ],
+        [
+          "load",
+          "Engine load"
+        ],
+        [
+          "eng_power",
+          "Engine power"
+        ],
+        [
+          "eng_torque",
+          "Engine torque"
+        ],
+        [
+          "power_pct",
+          "Sport display power %"
+        ],
+        [
+          "electric_kw",
+          "Electric power"
+        ],
+        [
+          "gearbox",
+          "Gearbox oil"
+        ],
+        [
+          "voltage",
+          "12 V system"
+        ],
+        [
+          "hv_temp",
+          "HV battery temp"
+        ],
+        [
+          "hv_soc",
+          "HV battery charge"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
+        ],
+        [
+          "misfire_total",
+          "Misfires (cycle)"
+        ]
+      ]
+    },
+    {
+      "key": "gp3",
+      "label": "Gauges page dial 3",
+      "type": "choice",
+      "default": "timing",
+      "options": [
+        [
+          "boost",
+          "Boost"
+        ],
+        [
+          "boost_target",
+          "Boost target"
+        ],
+        [
+          "iat",
+          "Intake air temp"
+        ],
+        [
+          "hpfp",
+          "High pressure fuel"
+        ],
+        [
+          "lpfp",
+          "Low pressure fuel"
+        ],
+        [
+          "timing",
+          "Ignition timing"
+        ],
+        [
+          "load",
+          "Engine load"
+        ],
+        [
+          "eng_power",
+          "Engine power"
+        ],
+        [
+          "eng_torque",
+          "Engine torque"
+        ],
+        [
+          "power_pct",
+          "Sport display power %"
+        ],
+        [
+          "electric_kw",
+          "Electric power"
+        ],
+        [
+          "gearbox",
+          "Gearbox oil"
+        ],
+        [
+          "voltage",
+          "12 V system"
+        ],
+        [
+          "hv_temp",
+          "HV battery temp"
+        ],
+        [
+          "hv_soc",
+          "HV battery charge"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
+        ],
+        [
+          "misfire_total",
+          "Misfires (cycle)"
+        ]
+      ]
+    },
+    {
+      "key": "gp4",
+      "label": "Gauges page dial 4",
+      "type": "choice",
+      "default": "load",
+      "options": [
+        [
+          "boost",
+          "Boost"
+        ],
+        [
+          "boost_target",
+          "Boost target"
+        ],
+        [
+          "iat",
+          "Intake air temp"
+        ],
+        [
+          "hpfp",
+          "High pressure fuel"
+        ],
+        [
+          "lpfp",
+          "Low pressure fuel"
+        ],
+        [
+          "timing",
+          "Ignition timing"
+        ],
+        [
+          "load",
+          "Engine load"
+        ],
+        [
+          "eng_power",
+          "Engine power"
+        ],
+        [
+          "eng_torque",
+          "Engine torque"
+        ],
+        [
+          "power_pct",
+          "Sport display power %"
+        ],
+        [
+          "electric_kw",
+          "Electric power"
+        ],
+        [
+          "gearbox",
+          "Gearbox oil"
+        ],
+        [
+          "voltage",
+          "12 V system"
+        ],
+        [
+          "hv_temp",
+          "HV battery temp"
+        ],
+        [
+          "hv_soc",
+          "HV battery charge"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
+        ],
+        [
+          "misfire_total",
+          "Misfires (cycle)"
+        ]
+      ]
+    },
+    {
+      "key": "gp5",
+      "label": "Gauges page dial 5",
+      "type": "choice",
+      "default": "lpfp",
+      "options": [
+        [
+          "boost",
+          "Boost"
+        ],
+        [
+          "boost_target",
+          "Boost target"
+        ],
+        [
+          "iat",
+          "Intake air temp"
+        ],
+        [
+          "hpfp",
+          "High pressure fuel"
+        ],
+        [
+          "lpfp",
+          "Low pressure fuel"
+        ],
+        [
+          "timing",
+          "Ignition timing"
+        ],
+        [
+          "load",
+          "Engine load"
+        ],
+        [
+          "eng_power",
+          "Engine power"
+        ],
+        [
+          "eng_torque",
+          "Engine torque"
+        ],
+        [
+          "power_pct",
+          "Sport display power %"
+        ],
+        [
+          "electric_kw",
+          "Electric power"
+        ],
+        [
+          "gearbox",
+          "Gearbox oil"
+        ],
+        [
+          "voltage",
+          "12 V system"
+        ],
+        [
+          "hv_temp",
+          "HV battery temp"
+        ],
+        [
+          "hv_soc",
+          "HV battery charge"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
+        ],
+        [
+          "misfire_total",
+          "Misfires (cycle)"
+        ]
+      ]
+    },
+    {
+      "key": "gp6",
+      "label": "Gauges page dial 6",
+      "type": "choice",
+      "default": "gearbox",
+      "options": [
+        [
+          "boost",
+          "Boost"
+        ],
+        [
+          "boost_target",
+          "Boost target"
+        ],
+        [
+          "iat",
+          "Intake air temp"
+        ],
+        [
+          "hpfp",
+          "High pressure fuel"
+        ],
+        [
+          "lpfp",
+          "Low pressure fuel"
+        ],
+        [
+          "timing",
+          "Ignition timing"
+        ],
+        [
+          "load",
+          "Engine load"
+        ],
+        [
+          "eng_power",
+          "Engine power"
+        ],
+        [
+          "eng_torque",
+          "Engine torque"
+        ],
+        [
+          "power_pct",
+          "Sport display power %"
+        ],
+        [
+          "electric_kw",
+          "Electric power"
+        ],
+        [
+          "gearbox",
+          "Gearbox oil"
+        ],
+        [
+          "voltage",
+          "12 V system"
+        ],
+        [
+          "hv_temp",
+          "HV battery temp"
+        ],
+        [
+          "hv_soc",
+          "HV battery charge"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
+        ],
+        [
+          "misfire_total",
+          "Misfires (cycle)"
+        ]
+      ]
+    },
+    {
+      "key": "gp7",
+      "label": "Gauges page dial 7",
+      "type": "choice",
+      "default": "voltage",
+      "options": [
+        [
+          "boost",
+          "Boost"
+        ],
+        [
+          "boost_target",
+          "Boost target"
+        ],
+        [
+          "iat",
+          "Intake air temp"
+        ],
+        [
+          "hpfp",
+          "High pressure fuel"
+        ],
+        [
+          "lpfp",
+          "Low pressure fuel"
+        ],
+        [
+          "timing",
+          "Ignition timing"
+        ],
+        [
+          "load",
+          "Engine load"
+        ],
+        [
+          "eng_power",
+          "Engine power"
+        ],
+        [
+          "eng_torque",
+          "Engine torque"
+        ],
+        [
+          "power_pct",
+          "Sport display power %"
+        ],
+        [
+          "electric_kw",
+          "Electric power"
+        ],
+        [
+          "gearbox",
+          "Gearbox oil"
+        ],
+        [
+          "voltage",
+          "12 V system"
+        ],
+        [
+          "hv_temp",
+          "HV battery temp"
+        ],
+        [
+          "hv_soc",
+          "HV battery charge"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
+        ],
+        [
+          "misfire_total",
+          "Misfires (cycle)"
+        ]
+      ]
+    },
+    {
+      "key": "gp8",
+      "label": "Gauges page dial 8",
+      "type": "choice",
+      "default": "hv_temp",
+      "options": [
+        [
+          "boost",
+          "Boost"
+        ],
+        [
+          "boost_target",
+          "Boost target"
+        ],
+        [
+          "iat",
+          "Intake air temp"
+        ],
+        [
+          "hpfp",
+          "High pressure fuel"
+        ],
+        [
+          "lpfp",
+          "Low pressure fuel"
+        ],
+        [
+          "timing",
+          "Ignition timing"
+        ],
+        [
+          "load",
+          "Engine load"
+        ],
+        [
+          "eng_power",
+          "Engine power"
+        ],
+        [
+          "eng_torque",
+          "Engine torque"
+        ],
+        [
+          "power_pct",
+          "Sport display power %"
+        ],
+        [
+          "electric_kw",
+          "Electric power"
+        ],
+        [
+          "gearbox",
+          "Gearbox oil"
+        ],
+        [
+          "voltage",
+          "12 V system"
+        ],
+        [
+          "hv_temp",
+          "HV battery temp"
+        ],
+        [
+          "hv_soc",
+          "HV battery charge"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
+        ],
+        [
+          "misfire_total",
+          "Misfires (cycle)"
+        ]
+      ]
+    },
+    {
+      "key": "powerUnit",
+      "label": "Power unit",
+      "type": "choice",
+      "default": "hp",
+      "options": [
+        [
+          "hp",
+          "hp (metric, as BMW quotes it)"
+        ],
+        [
+          "kw",
+          "kW"
+        ]
+      ]
+    },
+    {
+      "key": "maxPower",
+      "label": "Power split: system power for the sport display %",
+      "type": "choice",
+      "default": 185,
+      "options": [
+        [
+          135,
+          "184 hp / 135 kW (engine)"
+        ],
+        [
+          185,
+          "252 hp / 185 kW (530e system)"
+        ],
+        [
+          215,
+          "292 hp / 215 kW (XtraBoost)"
+        ]
+      ]
+    },
+    {
+      "key": "ambientWarn",
+      "label": "Ambient warning light",
+      "type": "choice",
+      "default": "on",
+      "options": [
+        [
+          "on",
+          "On - warn colour on a cold over-rev, ready colour when warm"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
+    },
+    {
+      "key": "warnSlot",
+      "label": "Ambient warning: cold over-rev colour slot (red)",
+      "type": "number",
+      "default": 2,
+      "steps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    {
+      "key": "readySlot",
+      "label": "Ambient warning: warmed-up colour slot (lime)",
+      "type": "number",
+      "default": 5,
+      "steps": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12
+      ]
+    },
+    {
+      "key": "misfireAlert",
+      "label": "Misfire warning",
+      "type": "choice",
+      "default": "on",
+      "options": [
+        [
+          "on",
+          "On - notify when a cylinder misfires"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
     },
     {
       "key": "layout",

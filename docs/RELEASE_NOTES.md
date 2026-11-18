@@ -1,3 +1,26 @@
+AHG Control Center 1.4.0 - Claude's latest Gauges, Health and horsepower update.
+
+- New Gauges page with boost target versus actual, eight selectable dials and an engine/electric power split.
+- New Health page with misfire monitoring and saved PASS / CHECK / NO DATA reports; results are guidance, not a diagnosis.
+- Additional read-only engine values and OBD monitor results, with ambient warning/ready colour support.
+- Faster boost scheduling: dedicated read loop, bounded slow reads and back-off for unsupported reads.
+- Power displayed in metric horsepower by default, with an hp / kW setting; logs retain kW for compatibility.
+- Includes the prior Drive, Hybrid and Warm-up pages and current exhaust/ambient controls.
+- App and package version set to 1.4.0 for MGU Store update detection.
+- 63 automated checks passed; OAP archive, SDK exclusion, USB catalog hashes and ZIP integrity validated.
+
+AHG Control Center 1.3.0 - Gauges, Garage health check, misfire monitor and ambient warning light.
+
+- New Gauges page: boost target vs actual on one dial (target as an outline needle, actual in the accent, the difference underneath, plus load target / actual), eight dials you choose by tapping them (IAT, HPFP, LPFP, ignition timing, engine load, engine power / torque, electric power, gearbox oil, 12 V, HV battery temp and charge, oil, coolant, RPM, speed, misfires), and a power split bar: engine kW (crank torque x rpm from the sport display signals) next to electric kW (measured battery power).
+- New Health page: live misfire monitor (counts per cylinder this driving cycle, from the DME's OBD on-board monitors) and the Garage health check. Run Check reads the engine fast for a few seconds and makes a PASS / CHECK / NO DATA report on misfires, boost target vs actual under load, load target vs actual, fuel pressures, ignition timing, 12 V, HV battery, oil / coolant temperatures, intake air and warm-up behaviour (stalled warm-up, cold over-revs). Reports are saved in the app's data folder (health/, last 20 kept). Limits are loose on purpose: CHECK means have a look, not a diagnosis.
+- Misfire warning on every page when a cylinder passes 50 misfires this cycle, or the total passes 500 (setting Misfire warning).
+- Ambient warning light (setting, on by default): the warning colour slot (default 2) while you rev a cold engine past the safe limit, a short flash of the ready slot (default 5) when the warm-up completes, then your own colour back. At most one change each 1.5 s; a colour you pick yourself meanwhile is kept. Set the two slots to the red and lime of your car's ambient menu.
+- Engine values (all read-only, idrive7-apps car_vitals identifiers): IAT 22 F40F / OBD 0F, HPFP 22 F423 / OBD 23, LPFP 22 F40A / F422, timing OBD 0E, load 22 5813 / 480C, boost target / actual 22 4AB0 / 580B (or F470). They are read every 0.4-0.7 s while Gauges or Health is open and every 5 s otherwise, after boost and in the same one-request-per-cycle scheduler, so boost stays real time.
+- The read-only diagnostic link now also passes OBD service 06 (monitor test results, one MID) for the misfire counts - only for this app's link, and still nothing that writes, codes or actuates.
+- Power is shown in hp (metric, 1 kW = 1.36 hp, as BMW quotes it) on the Gauges and Hybrid pages; new setting Power unit switches back to kW. Logs and health reports keep kW.
+- Side bar has 8 pages (Home, Gauges, Controls, Hybrid, Drive, Warm-up, Health, System); new settings for the Gauges dials, power split scale, ambient warning slots and misfire warning.
+- 63 automated checks (new: misfire reader, engine values, health report, misfire alert, ambient warning light, service 06 gate).
+
 AHG Control Center 1.3.0 - versioned release of the latest update.
 
 - Publishes the latest 1.2.0 update as 1.3.0 so MGU Store can recognize a newer app version.
@@ -29,7 +52,8 @@ AHG Control Center 1.2.0 - drive logging and UI cleanup.
 - Exhaust flap confirmed physically opening on a G30 530e (DME accepted 2F 60FD Open).
 - Warm-up page (ported from idrive7-apps Warm-Up): oil, coolant and gearbox oil with a "ready in ~X min" from the measured warm-up rate, a 20-minute trend, and a safe rev limit that climbs from the cold limit (3500 rpm) to the redline (6500) as the oil warms. Gearbox oil from the gearbox unit (read-only EGS 22 6000, ZF 8HP) or the car's BasicDataSet signal.
 - Cold over-rev warning on every page (flashing border + banner) when the revs pass the safe limit with cold oil; counted per cold start and logged. Advisory only - nothing is sent to the engine.
-- 52 automated checks, including drive-log CSV/summary tests.
+- Real-time boost: boost is read in its own loop (up to 10x per second); the slower hybrid / 12 V / gearbox reads run one request per cycle, with shorter timeouts, and back off (2 min, doubling to 10 min) when the car never answers them, so they can no longer stall boost.
+- 53 automated checks, including drive-log CSV/summary tests.
 
 AHG Control Center 1.1.1 fixes control status, diagnostic reconnect and live-signal freshness problems found after the first physical-car test.
 

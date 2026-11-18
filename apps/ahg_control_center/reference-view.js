@@ -1,7 +1,8 @@
 'use strict';
 const T=require('./theme'),M=require('./model'),Art=require('./art');
 const {C,text,bold,card,button,lineIcon}=T;
-const PAGES=['Home','Controls','Hybrid','Drive','Warm-up','System'];
+const PAGES=['Home','Gauges','Controls','Hybrid','Drive','Warm-up','Health','System'];
+const E=require('./engine');
 function field(a,k,d){return M.format(a.store.get(k),d);}
 function withUnit(a,k,d,unit){const v=field(a,k,d);return v==='--'?v:v+' '+unit;}
 function fit(s,n){s=String(s);return s.length>n?s.slice(0,n-3)+'...':s;}
@@ -17,6 +18,14 @@ function duration(sec){if(!M.finite(sec))return '--';sec=Math.max(0,Math.round(s
     return h?h+' h '+(m<10?'0':'')+m+' min':m?m+' min '+(s<10?'0':'')+s+' s':s+' s';}
 function clock(ms){const d=new Date(ms),p=(n)=>(n<10?'0':'')+n;return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes());}
 function logState(a){return a.driveLog?a.driveLog.status():{state:'off',text:'Logging off'};}
+// 21 px page icons for the side bar
+function navIcon(cv,label,x,y,col){
+    if(label==='Drive'){cv.arc(x+11,y+12,8,10,-90,90,col);cv.line(x+11,y+12,x+17,y+6,2,col);cv.circle(x+11,y+12,2.5,col);}
+    else if(label==='Warm-up'){cv.roundRect(x+8,y,6,16,3,col);cv.circle(x+11,y+17,5,col);cv.line(x+11,y+5,x+11,y+17,2,'#0a0a0a');}
+    else if(label==='Gauges'){cv.arc(x+11,y+12,9,11,-120,120,col);cv.line(x+11,y+12,x+17,y+4,2,col);cv.circle(x+11,y+12,2.5,col);cv.line(x+3,y+20,x+19,y+20,1.5,col);}
+    else if(label==='Health'){cv.polyline([[x,y+12],[x+5,y+12],[x+8,y+4],[x+12,y+20],[x+15,y+10],[x+17,y+12],[x+22,y+12]],2,col);}
+    else icon(cv,label.toLowerCase(),x,y,21,col);
+}
 function header(cv,a){
     cv.fillRect(12,38,1576,482,C.bg);
     for(let i=0;i<7;i++)cv.polyline([[184,415-i*9],[690,300-i*8],[1570,215-i*8]],1,'#ffffff05');
@@ -24,13 +33,11 @@ function header(cv,a){
     text(cv,'CONTROL CENTER',85,101,10,C.muted,'center');
     cv.line(158,48,158,470,1,'#333538');
     PAGES.forEach((label,i)=>{
-        const y=114+i*60,on=i===a.page,col=on?C.text:'#c9cccf';
-        if(on){cv.card(16,y-6,132,56,5,[[0,'#0a0a0a'],[0.45,C.accentDark],[1,C.accentDeep]]);cv.line(16,y-5,16,y+49,3,C.accent);cv.line(18,y+49,146,y+49,1,C.accent);}
-        if(label==='Drive'){cv.arc(82,y+13,8,10,-90,90,col);cv.line(82,y+13,88,y+7,2,col);cv.circle(82,y+13,2.5,col);}
-        else if(label==='Warm-up'){cv.roundRect(79,y,6,18,3,col);cv.circle(82,y+20,5,col);cv.line(82,y+6,82,y+20,2,'#0a0a0a');}
-        else icon(cv,label.toLowerCase(),71,y+2,21,col);
-        text(cv,label,82,y+42,16,C.text,'center');
-        cv.target(16,y-6,132,56,()=>a.navigate(i),'nav-'+i,6);
+        const y=108+i*45,on=i===a.page,col=on?C.text:'#c9cccf';
+        if(on){cv.card(16,y,132,41,5,[[0,'#0a0a0a'],[0.45,C.accentDark],[1,C.accentDeep]]);cv.line(16,y+1,16,y+40,3,C.accent);}
+        navIcon(cv,label,25,y+10,col);
+        text(cv,label,56,y+27,16,on?C.text:'#d6d8da');
+        cv.target(16,y,132,41,()=>a.navigate(i),'nav-'+i,6);
     });
     bold(cv,'BMW 530e',870,65,19,C.text,'center');
     const toast=a.toast&&Date.now()<a.toastUntil;
@@ -137,7 +144,9 @@ function controls(cv,a,dt){
     button(cv,limit+' rpm',1404,322,146,40,()=>a.cycleSetting('closeLimit'),'close-guard');
     // Ambient lighting: on the car the highlighted preset is the one the car confirmed.
     card(cv,184,383,1386,86);icon(cv,'system',208,411,29,C.text);bold(cv,'Ambient Lighting',258,418,21);
-    const ambientLine=sim?'Simulation · slot '+(ambient.actual||'--'):ambient.error?ambient.error:ambient.pending?'Sending slot '+ambient.desired+'...':ambient.actual?'Car reports slot '+ambient.actual:'Waiting for car colour status';
+    let ambientLine=sim?'Simulation · slot '+(ambient.actual||'--'):ambient.error?ambient.error:ambient.pending?'Sending slot '+ambient.desired+'...':ambient.actual?'Car reports slot '+ambient.actual:'Waiting for car colour status';
+    const aw=a.ambientWarn;
+    if(aw&&aw.showing!=null)ambientLine=(aw.warm&&aw.warm.over?'Warning light: cold over-rev':'Warning light: engine warm')+' · slot '+aw.showing;
     text(cv,fit(ambientLine,36),258,446,15,ambient.error?C.amber:C.muted);
     const swatch={comfort:C.blue,sport:C.red,night:'#a77be0',custom:'#e3b55c'};
     ['comfort','sport','night','custom'].forEach((p,i)=>{
@@ -151,6 +160,21 @@ function controls(cv,a,dt){
 function metric(cv,label,value,unit,x,y,w,h,color){
     card(cv,x,y,w,h);text(cv,label,x+22,y+27,16,C.muted);bold(cv,value,x+22,y+h-16,28,color||C.text);text(cv,unit,x+w-18,y+h-18,15,C.muted,'right');
 }
+// Power in the unit of the "powerUnit" setting: hp (metric, PS: 1 kW = 1.35962 hp, as BMW quotes it) or kW.
+// Stored values stay kW (logs, health check); only the display converts.
+const HP=1.35962,POWER_KEYS={eng_power:1,electric_kw:1,regen_kw:1};
+function hp(a){return a.ctx.settings.get('powerUnit')!=='kw';}
+function pwUnit(a){return hp(a)?'hp':'kW';}
+function pw(a,kw){return kw==null?null:hp(a)?kw*HP:kw;}
+function pwField(a,k,d){const r=a.store.get(k);return r.quality==='live'&&M.finite(r.value)?pw(a,r.value).toFixed(hp(a)?0:d):'--';}
+/** a power reading and its dial spec in the chosen unit */
+function pwDial(a,key,s,r){
+    if(!POWER_KEYS[key]||!hp(a))return [s,r];
+    const t=Object.assign({},s,{unit:'hp',decimals:0});
+    if(key==='eng_power'){t.min=0;t.max=s.max>150?300:200;t.major=50;t.minor=10;}
+    else{t.min=-80;t.max=160;t.major=40;t.minor=10;}
+    return [t,Object.assign({},r,{value:M.finite(r.value)?r.value*HP:r.value,unit:'hp'})];
+}
 function lv(a,k){const r=a.store.get(k);return r.quality==='live'&&r.value!=null?r.value:null;}
 function hybrid(cv,a){
     const soc=a.store.get('hv_soc'),hasSoc=soc.quality==='live',cx=347,cy=188,r=95;
@@ -161,8 +185,8 @@ function hybrid(cv,a){
     const st=tag('hv_soc');text(cv,st,cx,cy+58,13,st==='LIVE'?C.blue:C.amber,'center');
     metric(cv,'Drive Source',field(a,'drive_source'),'',530,85,348,86,C.blue);
     const t=lv(a,'hv_temp');metric(cv,'HV Battery',withUnit(a,'hv_v',0,'V'),t!=null?Math.round(t)+' °C':'',894,85,294,86);
-    metric(cv,'Electric Power',field(a,'electric_kw',1),'kW',530,187,319,76,kw!=null&&kw<0?C.green:null);
-    metric(cv,'Recuperation',field(a,'regen_kw',1),'kW',865,187,323,76,C.green);
+    metric(cv,'Electric Power',pwField(a,'electric_kw',1),pwUnit(a),530,187,319,76,kw!=null&&kw<0?C.green:null);
+    metric(cv,'Recuperation',pwField(a,'regen_kw',1),pwUnit(a),865,187,323,76,C.green);
     Art.draw(cv,'car',300,270,480,160);
     // Energy flow, from measured battery power: blue to the wheels when driving, green back when recuperating.
     if(kw!=null&&Math.abs(kw)>0.5){
@@ -209,6 +233,84 @@ function drive(cv,a){
         text(cv,clock(d.startedAt),785,y,16,C.text);text(cv,duration(d.durationS),925,y,16,C.text);
         text(cv,d.km.toFixed(1)+' km',1080,y,16,C.text);text(cv,'top '+(d.maxSpeed!=null?d.maxSpeed:'--')+' km/h',1180,y,16,C.muted);
         text(cv,'oil '+(d.maxOil!=null?d.maxOil:'--')+' °C',1550,y,16,C.muted,'right');if(i<2)cv.line(783,y+12,1550,y+12,1,'#36393d');});
+}
+// Gauges page: boost target vs actual on one dial, eight dials to choose (tap one for the next value), and
+// the power split between the engine and the electric motor.
+// short dial titles: the small dials have room for about 10 characters between their tick labels
+const SHORT={iat:'Intake air',hpfp:'HPFP',lpfp:'LPFP',timing:'Timing',load:'Load',load_target:'Load target',boost_target:'Boost target',boost_actual:'Boost actual',
+    eng_power:'Engine',eng_torque:'Torque',power_pct:'Power',electric_kw:'Electric',gearbox:'Gearbox',voltage:'12 V',hv_temp:'HV temp',hv_soc:'HV charge',
+    oil:'Oil',coolant:'Coolant',rpm:'Engine',speed:'Speed',misfire_total:'Misfires',boost:'Boost'};
+const GP=['gp1','gp2','gp3','gp4','gp5','gp6','gp7','gp8'];
+function spec(a,key){
+    const s=Object.assign({},M.DEFINITIONS[key]||M.DEFINITIONS.oil);
+    if(key==='boost'||key==='boost_target'||key==='boost_actual')s.max=Number(a.ctx.settings.get('boostMax'))||2;
+    if(key==='eng_power')s.max=Number(a.ctx.settings.get('maxPower'))>150?200:150;
+    if(s.min==null){s.min=0;s.max=100;s.major=25;s.minor=5;}
+    if(SHORT[key])s.label=SHORT[key];
+    return s;
+}
+function gaugesPage(cv,a,dt){
+    card(cv,184,85,376,384);text(cv,'BOOST · TARGET VS ACTUAL',372,114,13,C.muted,'center');
+    const bs=spec(a,'boost_target');bs.label='Boost';
+    const tgt=a.store.get('boost_target'),act=a.store.get('boost_actual').quality==='live'?a.store.get('boost_actual'):a.store.get('boost');
+    a.gauges.dual(cv,'dual-boost',bs,tgt,act,372,252,128,dt);
+    const tv=lv(a,'boost_target'),av=act.quality==='live'?act.value:null;
+    cv.line(202,410,542,410,1,'#36393d');
+    cv.polyline([[206,431],[226,431]],2,C.text);text(cv,'Target',234,436,15,C.muted);bold(cv,tv==null?'--':tv.toFixed(2)+' bar',372,436,16,C.text,'right');
+    cv.line(400,431,420,431,4,C.accent);text(cv,'Actual',428,436,15,C.muted);bold(cv,av==null?'--':av.toFixed(2),540,436,16,C.text,'right');
+    const la=lv(a,'load'),lt=lv(a,'load_target');
+    text(cv,'Load '+(la==null?'--':Math.round(la))+' / '+(lt==null?'--':Math.round(lt))+' %',206,460,14,C.muted);
+    const dev=tv!=null&&av!=null&&tv>0.3?av-tv:null;
+    text(cv,dev==null?'':(dev>=0?'+':'')+dev.toFixed(2)+' bar vs target',540,460,14,dev!=null&&dev<-0.25?C.amber:C.muted,'right');
+    const cols=[700,948,1196,1444],rows=[164,328];
+    GP.forEach((slot,i)=>{
+        const key=a.ctx.settings.get(slot),cx=cols[i%4],cy=rows[i>>2],r=72;
+        const d=pwDial(a,key,spec(a,key),a.store.get(key));
+        a.gauges.draw(cv,'gp-'+slot+'-'+key+'-'+d[0].unit,d[0],d[1],cx,cy,r,dt);
+        cv.target(cx-r-8,cy-r-8,2*r+16,2*r+30,()=>{a.cycleSetting(slot);const k=a.ctx.settings.get(slot);a.notice('Dial '+(i+1)+': '+(M.DEFINITIONS[k]?M.DEFINITIONS[k].label:k));},'gauge-'+slot,6);
+    });
+    // power split: engine (crank torque x rpm) and electric (battery power), from what the car measures
+    card(cv,576,425,994,44);
+    const eng=lv(a,'eng_power'),el=lv(a,'electric_kw'),e1=eng==null?null:Math.max(0,eng),e2=el==null?null:Math.max(0,el);
+    text(cv,'POWER',596,453,13,C.muted);
+    const bx=770,bw=560,tot=(e1||0)+(e2||0);
+    cv.roundRect(bx,440,bw,14,7,'#2c2f33');
+    if(tot>0.5){const w1=bw*(e1||0)/tot;if(w1>2)cv.roundRect(bx,440,w1,14,7,C.accent);if(bw-w1>2)cv.roundRect(bx+w1,440,bw-w1,14,7,C.blue);}
+    bold(cv,'Engine '+(e1==null?'--':Math.round(pw(a,e1))+' '+pwUnit(a)),756,453,15,C.accent,'right');
+    bold(cv,(e2==null?'--':Math.round(pw(a,e2))+' '+pwUnit(a))+' Electric',1344,453,15,C.blue);
+    const tq=lv(a,'eng_torque');text(cv,tq==null?'':Math.round(tq)+' Nm',1552,453,14,C.muted,'right');
+}
+// Health page: misfire monitor on the left, the health check report on the right.
+const STATUS={pass:['PASS',null],attention:['CHECK',C.amber],nodata:['NO DATA',C.muted]};
+function healthPage(cv,a){
+    const mf=a.health.misfire,lvl=mf?mf.level:null;
+    card(cv,184,85,560,384);bold(cv,'Misfire Monitor',207,120,22);
+    chip(cv,!mf?'WAITING':lvl==='crit'?'MISFIRING':lvl==='warn'?'WARNING':'OK',560,100,!mf?C.muted:lvl==='ok'?C.accent:lvl==='warn'?C.amber:C.red);
+    text(cv,'Counts this driving cycle, per cylinder (DME on-board monitor)',207,146,14,C.muted);
+    if(!mf){const why=a.hybrid&&a.hybrid.misfire&&a.hybrid.misfire.why;
+        wrap(why||'Read from the engine unit every 30 s, every 4 s while this page is open.',60,3).forEach((l,i)=>text(cv,l,207,200+i*22,15,C.muted));}
+    else{
+        const n=mf.counts.length,max=Math.max(E.MIS_CYL_WARN*2,Math.max.apply(null,mf.counts.map((x)=>x||0))),gap=Math.min(46,220/Math.max(1,n));
+        mf.counts.forEach((c,i)=>{const y=180+i*gap,w=c==null?0:440*M.clamp(c/max,0,1);
+            text(cv,'Cyl '+(i+1),207,y+14,15,C.text);cv.roundRect(270,y+2,400,16,8,'#2c2f33');
+            if(c)cv.roundRect(270,y+2,Math.max(16,w*400/440),16,8,c>=E.MIS_CYL_WARN?C.red:c>=E.MIS_CYL_WARN/2?C.amber:C.accent);
+            bold(cv,c==null?'-':String(c),724,y+15,16,c>=E.MIS_CYL_WARN?C.red:C.text,'right');});
+        const tot=mf.counts.reduce((s,x)=>s+(x||0),0);
+        cv.line(205,412,723,412,1,'#36393d');
+        text(cv,'Total',207,440,15,C.muted);bold(cv,String(tot),300,440,18,tot>=E.MIS_CRIT?C.red:tot>=E.MIS_WARN?C.amber:C.text);
+        text(cv,'read '+Math.max(0,Math.round((Date.now()-mf.at)/1000))+' s ago · warn at '+E.MIS_CYL_WARN+' / cyl, '+E.MIS_WARN+' total',723,440,13,C.muted,'right');
+    }
+    card(cv,762,85,808,384);bold(cv,'Garage Health Check',785,120,22);
+    const run=a.health.running,prog=a.health.progress();
+    button(cv,run?'Checking...':'Run Check',1394,98,156,42,run?null:()=>a.runHealth(),'health-run',!run,!!run);
+    button(cv,'Clear',1290,98,92,42,()=>a.resetHealth(),'health-reset');
+    const last=a.health.last,rep=last||a.health.report(a.warm);
+    const res=rep.result==='pass'?['ALL CLEAR',C.accent]:rep.result==='attention'?[rep.attention+' TO CHECK',C.amber]:['NO DATA YET',C.muted];
+    if(run){cv.roundRect(785,140,480,8,4,'#2c2f33');cv.roundRect(785,140,Math.max(8,480*prog),8,4,C.accent);text(cv,'Reading engine values fast...',785,168,14,C.muted);}
+    else{const w=chip(cv,res[0],785,135,res[1]);text(cv,last?'Saved '+clock(last.at)+' · stats since '+clock(last.since):'Live preview - Run Check saves a report',797+w,153,14,C.muted);}
+    rep.items.slice(0,12).forEach((it,i)=>{const x=785+(i%2)*398,y=190+(i>>1)*46,st=STATUS[it.status]||STATUS.nodata;
+        cv.circle(x+5,y-5,5,st[1]||C.accent);bold(cv,fit(it.name,26),x+18,y,15,C.text);bold(cv,st[0],x+378,y,13,st[1]||C.accent,'right');
+        text(cv,fit(it.detail,56),x+18,y+20,13,C.muted);});
 }
 // Cold over-rev warning on every page (advisory - nothing is sent to the engine).
 function coldAlert(cv,a){
@@ -293,5 +395,5 @@ function system(cv,a){
     const actions=[['App Log',()=>{a.systemMode='logs';a.logOffset=0;}],['Signal Viewer',()=>{a.systemMode='signals';a.logOffset=0;}],['Export Diagnostics',()=>a.exportReport()],['Settings',()=>a.settings()]];
     actions.forEach((r,i)=>button(cv,r[0],184+i*350,425,336,44,r[1],'system-'+i));
 }
-function draw(cv,a,dt){header(cv,a);[home,controls,hybrid,drive,warmup,system][a.page](cv,a,dt);coldAlert(cv,a);}
+function draw(cv,a,dt){header(cv,a);[home,gaugesPage,controls,hybrid,drive,warmup,healthPage,system][a.page](cv,a,dt);coldAlert(cv,a);}
 module.exports={draw,PAGES,wrap,fit};
