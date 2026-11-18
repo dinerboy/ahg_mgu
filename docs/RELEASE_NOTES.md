@@ -1,3 +1,13 @@
+AHG Control Center 1.4.0 - quicker gauges, gauges as Home, cleaner hybrid page, ambient removed.
+
+- Gauges are the Home page now (the old 4-gauge Home is gone). 7 pages: Home, Controls, Hybrid, Drive, Warm-up, Health, System.
+- Quicker dials: the DME values on screen are read together, up to 8 identifiers in ONE request every cycle (about 10x a second) instead of one value per request. A DME that refuses combined reads is detected and read one by one again. Values not on screen are read every 5 s, and nothing is read fast while the app is hidden.
+- Lighter dials: the small and middle dials use a dial face compiled for their size (2.6k / 6.2k triangle cells instead of 14k each), about 5x less for the renderer on Home. Frames are capped at ~30 per second (the app may use 30 % of one core).
+- Stability: a page that hits an unexpected reading shows the error and logs it instead of failing every frame; the 200 ms trip / warm-up timer can no longer end the app on an exception. Unused artwork (car photo, large logo, 1 MB) removed.
+- Ambient light removed completely: colour presets, the ambient warning light and the ambient colour setter. The app no longer writes anything to the car's comfort functions.
+- Hybrid page: the car illustration is replaced by a power flow diagram - HV battery, e-motor / 8HP and engine, with moving dots while power flows (blue from the battery, green back into it, the accent from the engine) and the power on each.
+- Controls page: a flap status row (ECU read-back, DME, engine speed, hold, close guard) where the ambient presets were.
+
 AHG Control Center 1.4.1 - correct misleading coolant dial colours.
 
 - Steady 110 C coolant is no longer inside the dial's red band.

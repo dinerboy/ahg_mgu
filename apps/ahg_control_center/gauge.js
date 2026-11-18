@@ -11,7 +11,8 @@ class Gauge {
         if(this.faces[key])return this.faces[key];
         const d=r*2+16,c=r+8;
         const layer=makeLayer(d,d,(cv)=>{
-            Art.paint(cv,'dial',d,d);
+            // the face artwork compiled nearest this size: far fewer triangles for the small dials
+            Art.paint(cv,d<=200?'dial160':d<=320?'dial288':'dial',d,d);
             // Recorder arcs start at twelve o'clock; Cartesian geometry starts
             // at three. Keep warning zones on the same scale as ticks/needles.
             cv.arc(c,c,r*0.83,r*0.865,230,270,T.C.blue);

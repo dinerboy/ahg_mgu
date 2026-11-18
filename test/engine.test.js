@@ -2,7 +2,7 @@
 const test=require('node:test'),assert=require('node:assert/strict');
 const M=require('../apps/ahg_control_center/model');
 const load=require('./load-app');
-const E=load('engine'),{HybridReader}=load('hybrid'),{HealthMonitor,MisfireAlert,AmbientWarn}=load('health');
+const E=load('engine'),{HybridReader}=load('hybrid'),{HealthMonitor,MisfireAlert}=load('health');
 const {DidReader}=require('../kit/runtime/dids');
 const {check}=require('../kit/runtime/readonly-diag');
 const hex=(b)=>b.toString(16).toUpperCase().padStart(2,'0');
@@ -41,7 +41,7 @@ test('engine values: IAT, fuel, timing, load and boost target vs actual, read-on
     const store=new M.SignalStore();
     const link=dme([0,0,0,0],{'18:F40F':[0x4B],'18:F423':[0x07,0xD0],'18:F40A':[0xAA],'18:F40E':[0x94],'18:5813':[0x64],'18:480C':[0x0D,0x55],
         '18:4AB0':[0x7D,0x00],'18:580B':[0x78,0x00],'18:F433':[100]});
-    const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link,focus:()=>true});await h.start();h.stop();h.stopped=false;await h.tick();h.stop();
+    const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link,wanted:()=>new Set(['iat','hpfp','lpfp','timing','load','load_target','boost_target','boost_actual'])});await h.start();h.stop();h.stopped=false;await h.tick();h.stop();
     link.sent.forEach((r)=>assert.ok([0x22,0x01,0x06].indexOf(r[1])>=0,'read-only: '+r));
     assert.equal(store.get('iat').value,35);assert.equal(store.get('hpfp').value,200);
     assert.ok(Math.abs(store.get('lpfp').value-5.1)<1e-9);assert.equal(store.get('timing').value,10);
@@ -69,20 +69,28 @@ test('misfire alert warns once per cylinder and once on critical',()=>{
     assert.equal(a.update([0,1,58,0],'warn'),null);
     assert.match(a.update([300,1,250,0],'crit'),/MISFIRES/);
 });
-test('ambient warning: warn slot on a cold over-rev, the driver colour back after, at most every 1.5 s',async()=>{
-    let t=0;const sent=[];
-    const state={actual:3};
-    const controls={lastColour:-Infinity,getState:()=>({actual:state.actual}),request:async(id,slot)=>{sent.push(slot);controls.lastColour=t;state.actual=slot;return {};}};
-    const warm={over:false,ready:()=>false,live:(k)=>k==='rpm'?3000:40};
-    const set={ambientWarn:'on',warnSlot:2,readySlot:5};
-    const aw=new AmbientWarn(controls,(k)=>set[k],warm,null,()=>t);
-    await aw.tick();assert.deepEqual(sent,[]);
-    warm.over=true;t=100;await aw.tick();assert.deepEqual(sent,[2]);
-    t=200;await aw.tick();assert.deepEqual(sent,[2],'no repeat');
-    warm.over=false;t=1000;await aw.tick();assert.deepEqual(sent,[2],'held for a moment');
-    t=3000;await aw.tick();assert.deepEqual(sent,[2,3],'driver colour back');
-    // warm-up done with the engine running: a short flash of the ready slot
-    warm.ready=()=>true;warm.live=(k)=>k==='rpm'?1500:85;t=5000;await aw.tick();assert.deepEqual(sent,[2,3,5]);
-    t=12000;await aw.tick();assert.deepEqual(sent,[2,3,5,3]);
-    set.ambientWarn='off';warm.over=true;t=20000;await aw.tick();assert.deepEqual(sent,[2,3,5,3],'off: nothing sent');
+test('shown DME values are read together in one request once their identifiers are known',async()=>{
+    const store=new M.SignalStore();
+    const vals={'F40F':[0x4B],'F423':[0x07,0xD0],'4AB0':[0x7D,0x00],'580B':[0x78,0x00],'F433':[100],'F470':[0,0,0,0x10,0]};
+    const link=dme([0,0,0,0]);const base=link.physical.bind(link);
+    link.physical=async(ecu,sid,data,ms,acc)=>{
+        if(ecu===0x12&&sid===0x22){link.sent.push([ecu,sid].concat(data));const out=[0x62];
+            for(let i=0;i<data.length;i+=2){const k=hex(data[i])+hex(data[i+1]);if(vals[k])out.push(data[i],data[i+1],...vals[k]);}
+            return out.length>1?out:[0x7F,0x22,0x31];}
+        return base(ecu,sid,data,ms,acc);};
+    link.readMany=(t,dids)=>link.physical(t,0x22,[].concat(...dids.map((d)=>[d>>8,d&255])),500);
+    const w=new Set(['boost','boost_target','boost_actual','iat','hpfp']);
+    const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link,wanted:()=>w});await h.start();h.stop();h.stopped=false;await h.tick();
+    link.sent.length=0;
+    const got=await h.readBatch(Date.now());h.stop();
+    assert.equal(link.sent.length,1,'one request');assert.equal(link.sent[0].length-2,2*5,'five identifiers: '+link.sent[0].map(hex).join(' '));
+    assert.equal(h.multi,true);assert.deepEqual(Object.keys(got).sort(),['boost','boost_actual','boost_target','hpfp','iat']);
+    assert.equal(store.get('iat').value,35);assert.ok(Math.abs(store.get('boost_target').value-0.25)<1e-9);
+});
+test('a DME that refuses combined reads goes back to one identifier per request',async()=>{
+    const store=new M.SignalStore(),link=dme([0,0,0,0],{'18:F40F':[0x4B],'18:F423':[0x07,0xD0],'18:F433':[100]});
+    link.readMany=async()=>[0x7F,0x22,0x13];
+    const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link,wanted:()=>new Set(['iat','hpfp'])});await h.start();h.stop();h.stopped=false;await h.tick();
+    await h.readBatch(Date.now());h.stop();assert.equal(h.multi,false);
+    assert.deepEqual(await h.readBatch(Date.now()),{},'not asked again');
 });

@@ -1,17 +1,13 @@
 'use strict';
 /**
- * health.js - the Garage health check and the ambient warning light.
+ * health.js - the Garage health check and the misfire warning.
  *
  * HealthMonitor watches the live readings all the time (a few times a second, on the app's timer) and keeps
  * what a mechanic would look at: misfires per cylinder, boost target vs actual under load, fuel pressures with
  * the engine running, the 12 V system, the HV battery and how the engine warms up. check() turns that into a
  * report: each item PASS, ATTENTION or NO DATA with the numbers behind it, saved as JSON in the app's data
  * folder (health/). The limits are deliberately loose: ATTENTION means "have a look", not a diagnosis.
- *
- * AmbientWarn turns the ambient light into a warning light: the warning slot (red) while the engine is revved
- * past the safe cold limit, a short flash of the ready slot (lime) when the warm-up completes, then the driver's
- * own colour back. At most one colour change each 1.5 s (Controls refuses faster ones), and nothing at all
- * while the setting is off.
+
  */
 const fs=require('fs'),path=require('path');
 const M=require('./model'),E=require('./engine');
@@ -137,56 +133,4 @@ class MisfireAlert {
         return null;
     }
 }
-const GAP_MS=1600,READY_FLASH_MS=6000,OVER_HOLD_MS=2500;
-class AmbientWarn {
-    /** controls: Controls (request / getState / lastColour); get(k): settings; warm: WarmUp */
-    constructor(controls,get,warm,log,now){
-        this.controls=controls;this.get=get;this.warm=warm;this.log=log;this.now=now||Date.now;
-        this.own=null;this.showing=null;this.overUntil=0;this.flashUntil=0;this.wasReady=null;this.busy=false;this.sentAt=0;this.retryAt=0;
-    }
-    enabled(){return this.get('ambientWarn')!=='off';}
-    /** the slot the light should show now, or null for the driver's own colour */
-    want(){
-        const now=this.now(),w=this.warm;
-        if(w.over)this.overUntil=now+OVER_HOLD_MS;
-        const ready=w.ready(),rpm=w.live('rpm');
-        if(this.wasReady===false&&ready&&rpm!=null&&rpm>400)this.flashUntil=now+READY_FLASH_MS;
-        if(w.live('oil')!=null)this.wasReady=ready;
-        if(now<this.overUntil)return Number(this.get('warnSlot'))||2;
-        if(now<this.flashUntil)return Number(this.get('readySlot'))||5;
-        return null;
-    }
-    tick(){
-        if(this.busy)return Promise.resolve();
-        const st=this.controls.getState('ambientHardware'),cur=st.actual;
-        if(!this.enabled()){
-            // switched off while showing a warning: give the driver's colour back
-            if(this.showing!=null&&this.own!=null)return this.send(this.own,null);
-            this.showing=null;return Promise.resolve();
-        }
-        const want=this.want();
-        if(want!=null){
-            if(this.showing==null)this.own=cur!=null&&cur!==want?cur:this.own;      // remember the driver's colour once
-            if(cur!==want||this.showing!==want)return this.send(want,want);
-            return Promise.resolve();
-        }
-        if(this.showing!=null){
-            // the driver picked another colour meanwhile: keep theirs
-            // (not before the car had time to report the warning colour, and not the colour it is giving back)
-            if(cur!=null&&cur!==this.showing&&cur!==this.own&&this.now()-this.sentAt>8000){this.showing=null;this.own=null;return Promise.resolve();}
-            if(this.own!=null)return this.send(this.own,null);
-            this.showing=null;
-        }
-        return Promise.resolve();
-    }
-    send(slot,showing){
-        const now=this.now();
-        if(now-(this.controls.lastColour||-Infinity)<GAP_MS||now<this.retryAt)return Promise.resolve();
-        this.busy=true;this.sentAt=now;
-        return this.controls.request('ambientHardware',slot).then(()=>{this.showing=showing;if(showing==null)this.own=null;})
-            // no colour interface (or the car refused): try again in 10 s, not every tick
-            .catch((e)=>{this.retryAt=this.now()+10000;if(this.log)this.log.warn('ambient warning: '+String(e.message||e));})
-            .then(()=>{this.busy=false;});
-    }
-}
-module.exports={HealthMonitor,MisfireAlert,AmbientWarn,LIMITS:L,Stat};
+module.exports={HealthMonitor,MisfireAlert,LIMITS:L,Stat};
