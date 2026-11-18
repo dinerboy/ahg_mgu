@@ -319,6 +319,38 @@
       ]
     },
     {
+      "key": "accent",
+      "label": "Accent colour",
+      "type": "choice",
+      "default": "lime",
+      "options": [
+        [
+          "lime",
+          "Neon Lime (After Hours Garage)"
+        ],
+        [
+          "red",
+          "Sport Red"
+        ],
+        [
+          "blue",
+          "Ice Blue"
+        ],
+        [
+          "amber",
+          "Night Amber"
+        ],
+        [
+          "violet",
+          "Violet"
+        ],
+        [
+          "white",
+          "Off White"
+        ]
+      ]
+    },
+    {
       "key": "displayMode",
       "label": "App display mode",
       "type": "choice",

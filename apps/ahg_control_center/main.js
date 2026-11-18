@@ -6,6 +6,7 @@ const {Controls}=require('./controls'),{Diagnostics}=require('./diagnostics');
 const {listSheet}=require('./kit/sheet');
 const IDS=['home','controls','hybrid','drive','system'];
 const {HybridReader}=require('./hybrid');
+const KIT_RED=require('./kit/themes').THEMES.m_red;
 const {Trip}=require('./trip');
 const {normalize}=require('./settings');
 const {DriveLog}=require('./drivelog');
@@ -14,7 +15,6 @@ function start(ctx) {
     const app={ctx:ctx,store:new M.SignalStore(),gauges:new Gauge(),diagnostics:new Diagnostics(ctx.dataDir,ctx.spec&&ctx.spec.version),logOffset:0,
         page:Math.max(0,IDS.indexOf(ctx.settings.get('page'))),provider:null,systemMode:'overview',signalOffset:0,
         emulator:process.env.AHG_EMULATOR==='1',demo:false,trip:new Trip(),elapsed:0,toast:null,toastUntil:0};
-    app.accent=()=>({comfort:T.C.blue,sport:T.C.red,night:'#bd8ddb',custom:'#dfb161'})[ctx.settings.get('profile')]||T.C.red;
     app.notice=(s)=>{app.toast=s;app.toastUntil=Date.now()+3500;app.diagnostics.log(s);};
     app.ioCtx=Object.assign({},ctx,{log:app.diagnostics.logger(ctx.log)});
     app.controls=new Controls(app.ioCtx,app.store,{emulator:app.emulator,demo:()=>app.demo});
@@ -64,8 +64,8 @@ function start(ctx) {
     let previous=Date.now();
     const loop=ctx.loop('MAIN',4,async()=>{
         const now=Date.now(),dt=M.clamp((now-previous)/1000,0,0.5);previous=now;app.elapsed=(now-app.diagnostics.started)/1000;
-        const cv=ctx.canvas(1600,520);cv.clear('#07090c');
-        G.frame(cv,ctx.theme(),[],-1,[{text:app.controls.simulated?'SIMULATION':app.controls.armed?'ARMED':'DISARMED',color:app.controls.armed?T.C.red:T.C.amber}]);
+        T.setAccent(ctx.settings.get('accent'));const cv=ctx.canvas(1600,520);cv.clear(T.C.bg);
+        G.frame(cv,T.kitTheme(KIT_RED),[],-1,[{text:app.controls.simulated?'SIMULATION':app.controls.armed?'ARMED':'DISARMED',color:app.controls.armed?T.C.red:T.C.amber}]);
         V.draw(cv,app,dt);await ctx.ui.image('MAIN_GFX',cv);
     });
     const stop=async()=>{if(app.hybrid)app.hybrid.stop();clearInterval(logTimer);clearInterval(tripTimer);app.driveLog.stop();app.provider.stop();loop.stop();app.gauges.clear();await app.controls.stop();};

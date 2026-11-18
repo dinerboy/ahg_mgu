@@ -3,10 +3,10 @@ const DEFINITIONS = {
     boost: {label:'Boost',unit:'bar',min:0,max:2,major:0.5,minor:0.1,decimals:2,hot:1.5},
     oil: {label:'Oil temperature',unit:'°C',min:50,max:150,major:20,minor:5,decimals:0,hot:125},
     coolant: {label:'Coolant',unit:'°C',min:50,max:130,major:20,minor:5,decimals:0,hot:110},
-    voltage: {label:'12 V system',unit:'V',min:10,max:16,major:1,minor:0.2,decimals:1,hot:15},
+    voltage: {label:'12 V system',unit:'V',min:10,max:16,major:1,minor:0.2,decimals:1,hot:15,staleMs:15000},
     rpm: {label:'Engine speed',unit:'rpm',min:0,max:8000,major:2000,minor:200,decimals:0,hot:6500},
     speed: {label:'Speed',unit:'km/h',min:0,max:240,major:40,minor:10,decimals:0,hot:200},
-    hv_soc:{label:'HV battery',unit:'%',min:0,max:100,decimals:0},
+    hv_soc:{label:'HV battery',unit:'%',min:0,max:100,decimals:0,staleMs:25000},
     ev_range:{label:'EV range',unit:'km',decimals:0}, electric_kw:{label:'Electric power',unit:'kW',decimals:1},
     regen_kw:{label:'Recuperation',unit:'kW',decimals:1}, fuel:{label:'Trip consumption',unit:'L/100 km',decimals:1},
     energy_used:{label:'Trip energy',unit:'kWh',decimals:1}, regen_energy:{label:'Recovered energy',unit:'kWh',decimals:1},
@@ -34,7 +34,9 @@ class SignalStore {
         const r=this.values[key];
         if(!r) return {key:key,value:null,unit:(DEFINITIONS[key]||{}).unit || '',timestampMs:null,source:null,quality:'unsupported',provenance:'No verified source'};
         const age=Math.max(0,this.now()-r.timestampMs);
-        return Object.assign({},r,{quality:r.quality==='live' && age>3000?'stale':r.quality,ageMs:age});
+        // slow reads (HV charge every 10 s, 12 V every 5 s) stay fresh for their own period
+        const limit=(DEFINITIONS[key]&&DEFINITIONS[key].staleMs)||3000;
+        return Object.assign({},r,{quality:r.quality==='live' && age>limit?'stale':r.quality,ageMs:age});
     }
     rows() { return Object.keys(DEFINITIONS).map((k)=>this.get(k)); }
 }

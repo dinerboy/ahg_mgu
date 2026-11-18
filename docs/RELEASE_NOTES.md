@@ -12,7 +12,10 @@ AHG Control Center 1.2.0 - drive logging and UI cleanup.
 - Flap command reviewed: byte-identical to upstream Engine Config (2F 60FD 03 03E8 open, 2F 60FD 03 2328 close, 2F 60FD 00 hand-back to DME 0x12), pinned by tests through the full Controller -> DiagLink path.
 - Real data from idrive7-apps: boost gauge from the sport display (passive), HV battery charge / voltage / current -> electric power and recuperation, and 12 V voltage via read-only diagnostic reads (kit/readonly-diag refuses anything but 0x22), HV temperature and eDRIVE needle (passive). Hybrid page is live again, next to Drive (5 pages). Home defaults: Boost, Oil, Coolant, RPM (saved choices reset once).
 - Smoke: Open now smokes from both tips.
-- 44 automated checks, including drive-log CSV/summary tests.
+- After Hours Garage branding from the owner's identity package: primary logo on Home, AHG monogram in the side menu and as the app icon, matte black / off white palette.
+- New Accent colour setting: Neon Lime (brand, default), Sport Red, Ice Blue, Night Amber, Violet, Off White. Meaning colours (hot zones, ARMED, REC) stay fixed.
+- HV charge / 12 V no longer flicker to stale between their slower reads.
+- 45 automated checks, including drive-log CSV/summary tests.
 
 AHG Control Center 1.1.1 fixes control status, diagnostic reconnect and live-signal freshness problems found after the first physical-car test.
 

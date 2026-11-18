@@ -1,6 +1,6 @@
 'use strict';
 const T=require('./theme'),M=require('./model'),Art=require('./art');
-const {C,text,bold,card,button,lineIcon,wordmark}=T;
+const {C,text,bold,card,button,lineIcon}=T;
 const PAGES=['Home','Controls','Hybrid','Drive','System'];
 function field(a,k,d){return M.format(a.store.get(k),d);}
 function withUnit(a,k,d,unit){const v=field(a,k,d);return v==='--'?v:v+' '+unit;}
@@ -20,11 +20,12 @@ function logState(a){return a.driveLog?a.driveLog.status():{state:'off',text:'Lo
 function header(cv,a){
     cv.fillRect(12,38,1576,482,C.bg);
     for(let i=0;i<7;i++)cv.polyline([[184,415-i*9],[690,300-i*8],[1570,215-i*8]],1,'#ffffff05');
-    wordmark(cv,30,77,0.72);text(cv,'CONTROL CENTER',29,98,11,C.muted);
+    Art.draw(cv,'mark',37,47,96,41); // AHG monogram (art/ahg-mark.png); the full logo is on Home
+    text(cv,'CONTROL CENTER',85,101,10,C.muted,'center');
     cv.line(158,48,158,470,1,'#333538');
     PAGES.forEach((label,i)=>{
         const y=114+i*72,on=i===a.page,col=on?C.text:'#c9cccf';
-        if(on){cv.card(16,y-8,132,66,5,[[0,'#070708'],[0.45,'#2b0306'],[1,'#740006']]);cv.line(16,y-7,16,y+57,2,C.red);cv.line(18,y+57,146,y+57,1,C.red);}
+        if(on){cv.card(16,y-8,132,66,5,[[0,'#0a0a0a'],[0.45,C.accentDark],[1,C.accentDeep]]);cv.line(16,y-7,16,y+57,3,C.accent);cv.line(18,y+57,146,y+57,1,C.accent);}
         if(label==='Drive'){cv.arc(82,y+15,9,11,-90,90,col);cv.line(82,y+15,89,y+8,2,col);cv.circle(82,y+15,2.5,col);}
         else icon(cv,label.toLowerCase(),70,y+1,24,col);
         text(cv,label,82,y+47,17,C.text,'center');
@@ -56,17 +57,17 @@ function home(cv,a,dt){
         if(key==='rpm')s.label='Engine';if(key==='speed')s.label='Speed';
         a.gauges.draw(cv,slot+'-'+key,s,a.store.get(key),p[i][0],p[i][1],p[i][2],dt);
     });
-    wordmark(cv,716,431,1.8);text(cv,'AFTER HOURS GARAGE',858,453,15,C.text,'center');
+    Art.draw(cv,'logo',712,396,296,74); // primary logo, between the small gauges
 }
 // Segmented control: one rounded track, the chosen segment filled in AHG red.
 function segmented(cv,items,x,y,w,h){
     cv.roundRect(x,y,w,h,12,'#3b3f44');cv.roundRect(x+1,y+1,w-2,h-2,11,'#0b0d0f');
     const sw=(w-8)/items.length;
     items.forEach((it,i)=>{const sx=x+4+i*sw;
-        if(it.selected){cv.card(sx,y+4,sw,h-8,9,[[0,'#b3141f'],[1,'#5c070d']]);cv.line(sx+14,y+5,sx+sw-14,y+5,1,'#ff8a8a66');}
-        else if(it.pending){cv.roundRect(sx,y+4,sw,h-8,9,'#5c070d');cv.roundRect(sx+2,y+6,sw-4,h-12,8,'#0b0d0f');}
+        if(it.selected){cv.card(sx,y+4,sw,h-8,9,[[0,C.accent],[1,C.accent]]);cv.line(sx+14,y+5,sx+sw-14,y+5,1,'#ffffff55');}
+        else if(it.pending){cv.roundRect(sx,y+4,sw,h-8,9,C.accentDeep);cv.roundRect(sx+2,y+6,sw-4,h-12,8,'#0b0d0f');}
         else if(i>0&&!items[i-1].selected)cv.line(sx,y+14,sx,y+h-14,1,'#2e3236');
-        bold(cv,it.label,sx+sw/2,y+h/2+7,19,it.selected?C.text:'#c9cdd1','center');
+        bold(cv,it.label,sx+sw/2,y+h/2+7,19,it.selected?C.onAccent:'#c9cdd1','center');
         cv.target(sx,y+4,sw,h-8,it.action,it.key,9);});
 }
 function chip(cv,label,x,y,color){
@@ -75,7 +76,7 @@ function chip(cv,label,x,y,color){
     cv.circle(x+14,y+13,4,color);bold(cv,label,x+24,y+18,13,color);return w;
 }
 function toggle(cv,x,y,on,enabled){
-    cv.roundRect(x,y,76,31,15,!enabled?'#1a1b1d':on?'#ae101b':'#292b2d');cv.circle(on?x+60:x+16,y+15,12,enabled?C.text:'#55595d');
+    cv.roundRect(x,y,76,31,15,!enabled?'#1a1b1d':on?C.accent:'#292b2d');cv.circle(on?x+60:x+16,y+15,12,!enabled?'#55595d':on?C.onAccent:C.text);
 }
 // Exhaust smoke from a tailpipe of the hero photo: puffs that billow out, rise, grow and fade.
 // A function of time only, so every frame moves it on. amt 0..1. Stays inside the hero card.

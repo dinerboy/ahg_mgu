@@ -54,3 +54,8 @@ test('invalid saved settings revert to schema defaults',()=>{
     const values={mode:'auto',hz:1000000};normalize({get:(k)=>values[k],set:(k,v)=>{values[k]=v;}},schema);
     assert.deepEqual(values,{mode:'off',hz:10});assert.equal(validated(schema[0],'on'),'on');
 });
+test('slow diagnostic reads keep their own freshness window',()=>{
+    let now=0;const store=new M.SignalStore(()=>now);store.put('hv_soc',60,'mgu');store.put('voltage',14,'mgu');store.put('rpm',900,'mgu');
+    now=12000;assert.equal(store.get('hv_soc').quality,'live');assert.equal(store.get('voltage').quality,'live');assert.equal(store.get('rpm').quality,'stale');
+    now=30000;assert.equal(store.get('hv_soc').quality,'stale');
+});
