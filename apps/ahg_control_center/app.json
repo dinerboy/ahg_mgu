@@ -1375,6 +1375,22 @@
       ]
     },
     {
+      "key": "powerUnit",
+      "label": "Power unit",
+      "type": "choice",
+      "default": "hp",
+      "options": [
+        [
+          "hp",
+          "hp (metric, as BMW quotes it)"
+        ],
+        [
+          "kw",
+          "kW"
+        ]
+      ]
+    },
+    {
       "key": "maxPower",
       "label": "Power split: system power for the sport display %",
       "type": "choice",
@@ -1382,15 +1398,15 @@
       "options": [
         [
           135,
-          "135 kW (engine)"
+          "184 hp / 135 kW (engine)"
         ],
         [
           185,
-          "185 kW (530e system)"
+          "252 hp / 185 kW (530e system)"
         ],
         [
           215,
-          "215 kW (XtraBoost)"
+          "292 hp / 215 kW (XtraBoost)"
         ]
       ]
     },

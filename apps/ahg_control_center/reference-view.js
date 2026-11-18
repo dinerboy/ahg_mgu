@@ -160,6 +160,21 @@ function controls(cv,a,dt){
 function metric(cv,label,value,unit,x,y,w,h,color){
     card(cv,x,y,w,h);text(cv,label,x+22,y+27,16,C.muted);bold(cv,value,x+22,y+h-16,28,color||C.text);text(cv,unit,x+w-18,y+h-18,15,C.muted,'right');
 }
+// Power in the unit of the "powerUnit" setting: hp (metric, PS: 1 kW = 1.35962 hp, as BMW quotes it) or kW.
+// Stored values stay kW (logs, health check); only the display converts.
+const HP=1.35962,POWER_KEYS={eng_power:1,electric_kw:1,regen_kw:1};
+function hp(a){return a.ctx.settings.get('powerUnit')!=='kw';}
+function pwUnit(a){return hp(a)?'hp':'kW';}
+function pw(a,kw){return kw==null?null:hp(a)?kw*HP:kw;}
+function pwField(a,k,d){const r=a.store.get(k);return r.quality==='live'&&M.finite(r.value)?pw(a,r.value).toFixed(hp(a)?0:d):'--';}
+/** a power reading and its dial spec in the chosen unit */
+function pwDial(a,key,s,r){
+    if(!POWER_KEYS[key]||!hp(a))return [s,r];
+    const t=Object.assign({},s,{unit:'hp',decimals:0});
+    if(key==='eng_power'){t.min=0;t.max=s.max>150?300:200;t.major=50;t.minor=10;}
+    else{t.min=-80;t.max=160;t.major=40;t.minor=10;}
+    return [t,Object.assign({},r,{value:M.finite(r.value)?r.value*HP:r.value,unit:'hp'})];
+}
 function lv(a,k){const r=a.store.get(k);return r.quality==='live'&&r.value!=null?r.value:null;}
 function hybrid(cv,a){
     const soc=a.store.get('hv_soc'),hasSoc=soc.quality==='live',cx=347,cy=188,r=95;
@@ -170,8 +185,8 @@ function hybrid(cv,a){
     const st=tag('hv_soc');text(cv,st,cx,cy+58,13,st==='LIVE'?C.blue:C.amber,'center');
     metric(cv,'Drive Source',field(a,'drive_source'),'',530,85,348,86,C.blue);
     const t=lv(a,'hv_temp');metric(cv,'HV Battery',withUnit(a,'hv_v',0,'V'),t!=null?Math.round(t)+' °C':'',894,85,294,86);
-    metric(cv,'Electric Power',field(a,'electric_kw',1),'kW',530,187,319,76,kw!=null&&kw<0?C.green:null);
-    metric(cv,'Recuperation',field(a,'regen_kw',1),'kW',865,187,323,76,C.green);
+    metric(cv,'Electric Power',pwField(a,'electric_kw',1),pwUnit(a),530,187,319,76,kw!=null&&kw<0?C.green:null);
+    metric(cv,'Recuperation',pwField(a,'regen_kw',1),pwUnit(a),865,187,323,76,C.green);
     Art.draw(cv,'car',300,270,480,160);
     // Energy flow, from measured battery power: blue to the wheels when driving, green back when recuperating.
     if(kw!=null&&Math.abs(kw)>0.5){
@@ -250,7 +265,8 @@ function gaugesPage(cv,a,dt){
     const cols=[700,948,1196,1444],rows=[164,328];
     GP.forEach((slot,i)=>{
         const key=a.ctx.settings.get(slot),cx=cols[i%4],cy=rows[i>>2],r=72;
-        a.gauges.draw(cv,'gp-'+slot+'-'+key,spec(a,key),a.store.get(key),cx,cy,r,dt);
+        const d=pwDial(a,key,spec(a,key),a.store.get(key));
+        a.gauges.draw(cv,'gp-'+slot+'-'+key+'-'+d[0].unit,d[0],d[1],cx,cy,r,dt);
         cv.target(cx-r-8,cy-r-8,2*r+16,2*r+30,()=>{a.cycleSetting(slot);const k=a.ctx.settings.get(slot);a.notice('Dial '+(i+1)+': '+(M.DEFINITIONS[k]?M.DEFINITIONS[k].label:k));},'gauge-'+slot,6);
     });
     // power split: engine (crank torque x rpm) and electric (battery power), from what the car measures
@@ -260,8 +276,8 @@ function gaugesPage(cv,a,dt){
     const bx=770,bw=560,tot=(e1||0)+(e2||0);
     cv.roundRect(bx,440,bw,14,7,'#2c2f33');
     if(tot>0.5){const w1=bw*(e1||0)/tot;if(w1>2)cv.roundRect(bx,440,w1,14,7,C.accent);if(bw-w1>2)cv.roundRect(bx+w1,440,bw-w1,14,7,C.blue);}
-    bold(cv,'Engine '+(e1==null?'--':Math.round(e1)+' kW'),756,453,15,C.accent,'right');
-    bold(cv,(e2==null?'--':Math.round(e2)+' kW')+' Electric',1344,453,15,C.blue);
+    bold(cv,'Engine '+(e1==null?'--':Math.round(pw(a,e1))+' '+pwUnit(a)),756,453,15,C.accent,'right');
+    bold(cv,(e2==null?'--':Math.round(pw(a,e2))+' '+pwUnit(a))+' Electric',1344,453,15,C.blue);
     const tq=lv(a,'eng_torque');text(cv,tq==null?'':Math.round(tq)+' Nm',1552,453,14,C.muted,'right');
 }
 // Health page: misfire monitor on the left, the health check report on the right.

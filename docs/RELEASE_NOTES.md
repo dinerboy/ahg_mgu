@@ -6,6 +6,7 @@ AHG Control Center 1.3.0 - Gauges, Garage health check, misfire monitor and ambi
 - Ambient warning light (setting, on by default): the warning colour slot (default 2) while you rev a cold engine past the safe limit, a short flash of the ready slot (default 5) when the warm-up completes, then your own colour back. At most one change each 1.5 s; a colour you pick yourself meanwhile is kept. Set the two slots to the red and lime of your car's ambient menu.
 - Engine values (all read-only, idrive7-apps car_vitals identifiers): IAT 22 F40F / OBD 0F, HPFP 22 F423 / OBD 23, LPFP 22 F40A / F422, timing OBD 0E, load 22 5813 / 480C, boost target / actual 22 4AB0 / 580B (or F470). They are read every 0.4-0.7 s while Gauges or Health is open and every 5 s otherwise, after boost and in the same one-request-per-cycle scheduler, so boost stays real time.
 - The read-only diagnostic link now also passes OBD service 06 (monitor test results, one MID) for the misfire counts - only for this app's link, and still nothing that writes, codes or actuates.
+- Power is shown in hp (metric, 1 kW = 1.36 hp, as BMW quotes it) on the Gauges and Hybrid pages; new setting Power unit switches back to kW. Logs and health reports keep kW.
 - Side bar has 8 pages (Home, Gauges, Controls, Hybrid, Drive, Warm-up, Health, System); new settings for the Gauges dials, power split scale, ambient warning slots and misfire warning.
 - 63 automated checks (new: misfire reader, engine values, health report, misfire alert, ambient warning light, service 06 gate).
 
