@@ -17,7 +17,7 @@ const DEFINITIONS = {
 function finite(v) { return typeof v === 'number' && isFinite(v); }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
 function angle(v, lo, hi) { return 140 + clamp((v-lo)/(hi-lo),0,1)*260; }
-function damp(value, target, dt) { return value + (target-value)*(1-Math.exp(-clamp(dt,0,0.1)/0.11)); }
+function damp(value, target, dt) { return value + (target-value)*(1-Math.exp(-clamp(dt,0,0.5)/0.11)); }
 function format(reading, decimals) { return reading && reading.quality === 'live' && reading.value != null ?
     (finite(reading.value) ? reading.value.toFixed(decimals == null ? 0 : decimals) : String(reading.value)) : '--'; }
 class SignalStore {

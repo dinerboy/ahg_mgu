@@ -1,8 +1,8 @@
 {
   "id": "ahg_control_center",
   "title": "AHG Control Center",
-  "description": "Native ID7 dashboard with session-armed stock MG1 exhaust and ambient-colour testing. ASD/start-stop are simulation-only on stock software.",
-  "version": "1.1.1",
+  "description": "Native ID7 dashboard with live gauges, drive logging and session-armed stock MG1 exhaust and ambient-colour testing.",
+  "version": "1.2.0",
   "vendor": "After Hours Garage",
   "license": "MIT",
   "loggingId": "AHG1",
@@ -201,6 +201,42 @@
       ]
     },
     {
+      "key": "logging",
+      "label": "Drive logging",
+      "type": "choice",
+      "default": "on",
+      "options": [
+        [
+          "on",
+          "On - record live readings to CSV"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
+    },
+    {
+      "key": "logHz",
+      "label": "Drive log rate",
+      "type": "choice",
+      "default": 2,
+      "options": [
+        [
+          1,
+          "1 sample/s"
+        ],
+        [
+          2,
+          "2 samples/s"
+        ],
+        [
+          5,
+          "5 samples/s"
+        ]
+      ]
+    },
+    {
       "key": "demo",
       "label": "Synthetic demo data",
       "type": "choice",
@@ -278,7 +314,8 @@
           "dark",
           "Dark"
         ]
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "sensorHz",
@@ -316,12 +353,8 @@
       "key": "gauge1",
       "label": "Primary gauge 1",
       "type": "choice",
-      "default": "boost",
+      "default": "rpm",
       "options": [
-        [
-          "boost",
-          "Boost (verified source required)"
-        ],
         [
           "rpm",
           "Engine RPM"
@@ -329,8 +362,21 @@
         [
           "speed",
           "Vehicle speed"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "boost",
+          "Boost (demo only - no car source yet)"
         ]
-      ]
+      ],
+      "reset": 2
     },
     {
       "key": "gauge2",
@@ -384,25 +430,30 @@
       "key": "gauge4",
       "label": "Small gauge 2",
       "type": "choice",
-      "default": "voltage",
+      "default": "speed",
       "options": [
         [
-          "voltage",
-          "12 V system voltage (source required)"
-        ],
-        [
-          "coolant",
-          "Coolant temperature"
+          "speed",
+          "Vehicle speed"
         ],
         [
           "rpm",
           "Engine RPM"
         ],
         [
-          "speed",
-          "Vehicle speed"
+          "coolant",
+          "Coolant temperature"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "voltage",
+          "12 V (demo only - no car source yet)"
         ]
-      ]
+      ],
+      "reset": 2
     },
     {
       "key": "layout",
