@@ -1,3 +1,5 @@
+> **1.2.0:** there is no Arm button or demo mode in the car any more: the controls are ready from startup, Hold defaults On, and hiding the app keeps the flap state (quitting hands back to the DME). Simulation is the desktop emulator (`npm run emulator`). The steps below describe 1.1.x and are kept for reference.
+
 # Control testing — 1.1.0
 
 This build adds real stock-car exhaust and ambient-colour providers, using the pinned upstream code. It is emulator verified; the owner's physical G30 530e has not been tested. The earlier read-only brief described 1.0.0; the owner's later instruction authorizes these controls.

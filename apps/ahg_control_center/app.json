@@ -1,8 +1,8 @@
 {
   "id": "ahg_control_center",
   "title": "AHG Control Center",
-  "description": "Native ID7 dashboard with session-armed stock MG1 exhaust and ambient-colour testing. ASD/start-stop are simulation-only on stock software.",
-  "version": "1.1.1",
+  "description": "After Hours Garage dashboard for ID7: live gauges, hybrid battery, drive logging and stock MG1 exhaust flap and ambient colour control.",
+  "version": "1.2.0",
   "vendor": "After Hours Garage",
   "license": "MIT",
   "loggingId": "AHG1",
@@ -23,7 +23,7 @@
       "statusCarSpeed2": "rs"
     },
     "com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu": {
-      "_optional": "Vehicle diagnostic controls unavailable",
+      "_optional": "Diagnostic reads (HV battery, 12 V) and vehicle controls unavailable",
       "_instances": "SystemFunctionsInternalTasuInst1",
       "_methods": [
         "sendTasuRequest"
@@ -38,8 +38,22 @@
       "statusAmbientLightInteriorColour": "rs"
     },
     "de.bmw.infotainment.drivingexcitement.FES": {
-      "_optional": "Driving-mode display unavailable",
-      "statusFESVehicleDynamicSwitchHMI": "rs"
+      "_optional": "Driving-mode and boost display unavailable",
+      "statusFESVehicleDynamicSwitchHMI": "rs",
+      "statusSwitchDriveDynamicSport2": "rs"
+    },
+    "de.bmw.infotainment.vehicle.Vehicle": {
+      "_optional": "Pressure unit unknown (boost shown as bar)",
+      "statusNewCurrentUnitsStatusExt": "rs"
+    },
+    "de.bmw.infotainment.drivingexcitement.Efficiencytainment2": {
+      "_optional": "HV battery temperature and eDRIVE needle unavailable",
+      "statusBatteryTemperature": "rs",
+      "statusPowerRelativHybrid": "rs"
+    },
+    "de.bmw.infotainment.lsc.LSCDataSink": {
+      "_optional": "HV voltage broadcast unavailable",
+      "statusHighVoltageStorage": "s"
     }
   },
   "screens": [
@@ -66,7 +80,7 @@
   "settings": [
     {
       "key": "controlMode",
-      "label": "Control testing mode",
+      "label": "Control mode (desktop emulator is always simulation)",
       "type": "choice",
       "default": "vehicle",
       "options": [
@@ -78,27 +92,29 @@
           "vehicle",
           "Vehicle \u2014 stock MG1 flap and ambient slots"
         ]
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "hold",
-      "label": "Hold flap override (armed only)",
+      "label": "Hold flap position",
       "type": "choice",
-      "default": "off",
+      "default": "on",
       "options": [
         [
-          "off",
-          "Off \u2014 DME override times out"
+          "on",
+          "On - re-send Open/Closed every 15 s"
         ],
         [
-          "on",
-          "On \u2014 repeat every 15 seconds"
+          "off",
+          "Off - the DME returns to auto after ~20 s"
         ]
-      ]
+      ],
+      "reset": 2
     },
     {
       "key": "closeLimit",
-      "label": "Close: hand back above RPM",
+      "label": "Close guard: hand back to auto above",
       "type": "choice",
       "default": "4000",
       "options": [
@@ -201,6 +217,42 @@
       ]
     },
     {
+      "key": "logging",
+      "label": "Drive logging",
+      "type": "choice",
+      "default": "on",
+      "options": [
+        [
+          "on",
+          "On - record live readings to CSV"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
+    },
+    {
+      "key": "logHz",
+      "label": "Drive log rate",
+      "type": "choice",
+      "default": 2,
+      "options": [
+        [
+          1,
+          "1 sample/s"
+        ],
+        [
+          2,
+          "2 samples/s"
+        ],
+        [
+          5,
+          "5 samples/s"
+        ]
+      ]
+    },
+    {
       "key": "demo",
       "label": "Synthetic demo data",
       "type": "choice",
@@ -214,7 +266,8 @@
           "on",
           "On \u2014 labeled demo only"
         ]
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "page",
@@ -233,6 +286,10 @@
         [
           "hybrid",
           "Hybrid"
+        ],
+        [
+          "drive",
+          "Drive"
         ],
         [
           "system",
@@ -265,6 +322,38 @@
       ]
     },
     {
+      "key": "accent",
+      "label": "Accent colour",
+      "type": "choice",
+      "default": "lime",
+      "options": [
+        [
+          "lime",
+          "Neon Lime (After Hours Garage)"
+        ],
+        [
+          "red",
+          "Sport Red"
+        ],
+        [
+          "blue",
+          "Ice Blue"
+        ],
+        [
+          "amber",
+          "Night Amber"
+        ],
+        [
+          "violet",
+          "Violet"
+        ],
+        [
+          "white",
+          "Off White"
+        ]
+      ]
+    },
+    {
       "key": "displayMode",
       "label": "App display mode",
       "type": "choice",
@@ -278,7 +367,8 @@
           "dark",
           "Dark"
         ]
-      ]
+      ],
+      "hidden": true
     },
     {
       "key": "sensorHz",
@@ -302,7 +392,7 @@
     },
     {
       "key": "boostMax",
-      "label": "Boost scale (bar)",
+      "label": "Boost gauge scale (bar)",
       "type": "number",
       "default": 2,
       "steps": [
@@ -320,7 +410,7 @@
       "options": [
         [
           "boost",
-          "Boost (verified source required)"
+          "Boost (sport display)"
         ],
         [
           "rpm",
@@ -329,8 +419,17 @@
         [
           "speed",
           "Vehicle speed"
+        ],
+        [
+          "oil",
+          "Oil temperature"
+        ],
+        [
+          "coolant",
+          "Coolant temperature"
         ]
-      ]
+      ],
+      "reset": 3
     },
     {
       "key": "gauge2",
@@ -353,6 +452,14 @@
         [
           "speed",
           "Vehicle speed"
+        ],
+        [
+          "boost",
+          "Boost (sport display)"
+        ],
+        [
+          "voltage",
+          "12 V system voltage"
         ]
       ]
     },
@@ -377,6 +484,14 @@
         [
           "speed",
           "Vehicle speed"
+        ],
+        [
+          "boost",
+          "Boost (sport display)"
+        ],
+        [
+          "voltage",
+          "12 V system voltage"
         ]
       ]
     },
@@ -384,25 +499,30 @@
       "key": "gauge4",
       "label": "Small gauge 2",
       "type": "choice",
-      "default": "voltage",
+      "default": "rpm",
       "options": [
         [
+          "rpm",
+          "Engine RPM"
+        ],
+        [
           "voltage",
-          "12 V system voltage (source required)"
+          "12 V system voltage"
+        ],
+        [
+          "speed",
+          "Vehicle speed"
         ],
         [
           "coolant",
           "Coolant temperature"
         ],
         [
-          "rpm",
-          "Engine RPM"
-        ],
-        [
-          "speed",
-          "Vehicle speed"
+          "oil",
+          "Oil temperature"
         ]
-      ]
+      ],
+      "reset": 3
     },
     {
       "key": "layout",

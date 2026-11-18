@@ -5,7 +5,7 @@
 const fs=require('fs'),path=require('path'),zlib=require('zlib'),{PNG}=require('pngjs');
 const root=path.resolve(__dirname,'..'),output=path.join(root,'apps/ahg_control_center/assets');
 fs.mkdirSync(output,{recursive:true});
-const specs=[['dial','dial-face.png',512,512],['car','530e-cutout.png',960,320],['exhaust','exhaust-hero.png',720,240]];
+const specs=[['dial','dial-face.png',512,512],['car','530e-cutout.png',960,320],['exhaust','exhaust-crop.png',820,213],['logo','ahg-logo.png',385,97],['mark','ahg-mark.png',138,59]];
 for(const spec of specs){
     const name=spec[0],png=PNG.sync.read(fs.readFileSync(path.join(root,'art',spec[1]))),W=spec[2],H=spec[3];
     function sample(x,y){

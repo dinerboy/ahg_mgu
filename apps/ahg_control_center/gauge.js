@@ -45,16 +45,16 @@ class Gauge {
         const a=M.angle(value,spec.min,spec.max)*RAD,ux=Math.cos(a),uy=Math.sin(a),nx=-uy,ny=ux;
         function p(l,w){return [cx+ux*l+nx*w,cy+uy*l+ny*w];}
         const polygon=[p(r*0.79,0),p(r*0.08,r*0.027),p(-r*0.16,r*0.022),p(-r*0.18,0),p(-r*0.16,-r*0.022),p(r*0.08,-r*0.027)];
-        if(live){cv.fill(polygon.map((pt)=>[pt[0]+3,pt[1]+3]),'#000000aa');cv.fill(polygon,T.C.red);const tip=p(r*0.7,0),tail=p(-r*0.11,0);cv.line(tail[0],tail[1],tip[0],tip[1],1,'#ffb4b0');}
+        if(live){cv.fill(polygon.map((pt)=>[pt[0]+3,pt[1]+3]),'#000000aa');cv.fill(polygon,T.C.accent);const tip=p(r*0.7,0),tail=p(-r*0.11,0);cv.line(tail[0],tail[1],tip[0],tip[1],1,'#ffffff77');}
         else {const q=p(r*0.65,0);cv.line(cx,cy,q[0],q[1],2,'#333b45');}
         cv.circle(cx,cy,r*0.105,'#11151b');cv.arc(cx,cy,r*0.095,r*0.105,180,350,'#87909b');cv.circle(cx,cy,r*0.067,'#222831');
         T.bold(cv,spec.label,cx,cy+r*0.28,(r>140?20:18)*size,T.C.text,'center');
-        T.text(cv,spec.unit+(spec.unit==='rpm'?' ×1000':''),cx,cy+r*0.42,14*size,T.C.muted,'center');
+        T.text(cv,spec.unit+(spec.unit==='rpm'?' ×1000':''),cx,cy+r*0.42,15*size,T.C.muted,'center');
         const rw=r>140?133:94,rh=r>140?34:27,ry=cy+r*0.53;
         cv.roundRect(cx-rw/2,ry,rw,rh,5,'#7a838e');cv.roundRect(cx-rw/2+1,ry+1,rw-2,rh-2,4,'#06080b');
         T.bold(cv,M.format(reading,spec.decimals)+(live?' '+spec.unit:''),cx,ry+rh*0.72,20*size,live?T.C.text:T.C.muted,'center');
         const state=live?(reading.source==='mock'?'DEMO':'LIVE'):reading.quality==='stale'?'STALE':'NO SIGNAL';
-        T.text(cv,state,cx,cy+r+10,10,live?(reading.source==='mock'?T.C.amber:T.C.blue):T.C.amber,'center');
+        T.text(cv,state,cx,cy+r+12,13,live?(reading.source==='mock'?T.C.amber:T.C.blue):T.C.amber,'center');
     }
     clear() {this.keys.forEach((k)=>dropLayer(this.faces[k]));this.faces={};this.keys=[];this.needle={};}
 }

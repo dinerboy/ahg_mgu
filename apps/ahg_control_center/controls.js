@@ -21,8 +21,10 @@ class Controls {
     capabilities(){return {exhaust:this.simulated||this.ready,asd:this.simulated,startStop:this.simulated,ambientHardware:this.simulated||!!this.light};}
     async start(){
         this.mode=this.simulated?'simulation':'vehicle';this.reset();
-        // No diagnostic link or capability probe until a session Arm press.
         this.timer=setInterval(()=>{if(this.armed&&!this.busy)this.auto.tick().then(()=>this.sync()).catch((e)=>this.ctx.log.warn(String(e)));},250);
+        // In the car the controls are always ready: arm at startup. Arming only detects the DME (read-only
+        // 0x22 probes) and subscribes the colour status; nothing is commanded until a mode is pressed.
+        if(!this.simulated)await this.arm().catch((e)=>this.ctx.log.warn('auto-arm: '+String(e.message||e)));
     }
     enqueue(fn){const p=this.queue.then(fn);this.queue=p.catch(()=>{});return p;}
     watchLink(){
@@ -31,7 +33,7 @@ class Controls {
         this.watchedLink=link;
         link.onAvailable((on)=>{
             if(!this.armed||this.stopped||link!==this.controller.link)return;
-            if(!on){this.ready=false;this.detectionError='Diagnostic link offline; select a mode again after reconnect';this.auto._stop();this.auto.desired='OEM';this.auto.sent='OEM';this.auto.source='start';this.auto.paused=false;this.sync();return;}
+            if(!on){this.ready=false;this.detectionError='Diagnostic link lost - pick the mode again once it is back';this.auto._stop();this.auto.desired='OEM';this.auto.sent='OEM';this.auto.source='start';this.auto.paused=false;this.sync();return;}
             // Re-detection is read-only. Never replay an earlier Open/Close on reconnect.
             this.enqueue(async()=>{if(this.armed&&!this.stopped){await this.detect();this.sync();}}).catch((e)=>this.ctx.log.warn('DME reconnect: '+String(e)));
         });
@@ -45,7 +47,7 @@ class Controls {
             this.ready=this.controller.real&&!this.controller.blocked&&this.controller.link.available!==false;
             const active=this.controller.link;
             this.detectionError=this.ready?null:active&&active.available===false?
-                'Diagnostic link unavailable; use Recheck after ignition is ready':this.controller.pickReason||'No compatible MG1 flap detected';
+                'Diagnostic link not up yet - connects by itself with the ignition on':this.controller.pickReason||'No compatible MG1 flap detected';
             this.ctx.log.info('AHG flap detection: '+(this.ready?'ready':this.detectionError));
         }catch(e){this.ready=false;this.detectionError='DME detection failed: '+String(e.message||e);this.states.exhaust.error=this.detectionError;throw e;}
         finally{this.busy=false;}
@@ -61,14 +63,17 @@ class Controls {
         s.readback=v.confirmed==='UNKNOWN'?null:v.confirmed;s.actual=null;s.source='vehicle';
         const note=this.auto.note();s.error=this.detectionError||(!this.ready?this.controller.pickReason||'Flap not ready':null)||v.error||(note&&note.warn?note.text:null)||(v.accepted===false?'DME rejected or did not answer; see app logs':null);
     }
-    async arm(){return this.enqueue(async()=>{
+    arm(){return this.enqueue(()=>this._arm());}
+    async _arm(){
         if(this.stopped)throw new Error('Controls stopped');
-        if(this.simulated)throw new Error('Choose vehicle control mode and turn demo off on the car to arm');
+        if(this.simulated)throw new Error('Simulation runs on the desktop emulator only');
         if(this.armed)return;
         this.busy=true;
         try{
             this.mode='vehicle';this.reset();this.armed=true;
-            await this.detect();
+            // A DME that isn't reachable yet (ignition, TASU starting) is not an error here: detection runs again
+            // when the link comes up and on the next press. The controls stay armed.
+            try{await this.detect();}catch(e){this.ctx.log.warn('DME detection: '+String(e.message||e));}
             this.auto.desired='OEM';this.auto.sent='OEM';
             if(!this.sub){
                 this.sub=await this.ctx.signals.watch(LIGHT,'1',{statusAmbientLightInteriorColour:(v)=>{
@@ -81,8 +86,8 @@ class Controls {
                 this.light=this.sub.proxy||null;
             }
             this.sync();
-        }catch(e){this.armed=false;throw e;}finally{this.busy=false;}
-    });}
+        }catch(e){this.ctx.log.warn('arm: '+String(e.message||e));}finally{this.busy=false;}
+    }
     async disarm(){return this.enqueue(async()=>{
         this.generation++;clearTimeout(this.colourTimer);this.auto._stop();
         try{if(this.armed&&this.ready){await this.auto.press('OEM');this.sync();}}
@@ -95,7 +100,7 @@ class Controls {
     });}
     async settingsChanged(key){
         if(key==='controlMode'||key==='demo'){
-            await this.disarm();this.mode=this.simulated?'simulation':'vehicle';this.reset();
+            await this.disarm();this.mode=this.simulated?'simulation':'vehicle';this.reset();if(!this.simulated)await this.arm();
         }else if(key==='hold'||key==='closeLimit')await this.auto.settingsChanged(key);
     }
     async request(id,desired){return this.enqueue(async()=>{
@@ -113,7 +118,7 @@ class Controls {
         if(id==='asd'||id==='startStop'){
             s.supported=false;s.error=id==='asd'?'Stock ASD write unavailable; Engine Config ASD requires bootmod3':'No verified stock start-stop memory write in the referenced SDK';throw new Error(s.error);
         }
-        if(!this.armed){s.error='Arm vehicle controls for this session first';throw new Error(s.error);}
+        if(!this.armed)await this._arm();
         if(id==='exhaust'){
             if(!this.ready){await this.detect();if(!this.ready){s.error=this.detectionError;throw new Error(s.error);}}
             s.pending=true;await this.auto.press(desired);this.sync();return this.getState(id);

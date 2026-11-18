@@ -1,7 +1,14 @@
 'use strict';
 const M=require('./model');
 const CDS='de.bmw.infotainment.vehicle.CDS', VEHICLE='de.bmw.infotainment.vehicle.Vehicle2';
-const FES='de.bmw.infotainment.drivingexcitement.FES';
+const FES='de.bmw.infotainment.drivingexcitement.FES',UNITS='de.bmw.infotainment.vehicle.Vehicle';
+const EFF='de.bmw.infotainment.drivingexcitement.Efficiencytainment2',LSC='de.bmw.infotainment.lsc.LSCDataSink';
+// Passive SOME/IP sources from idrive7-apps live_data/signals.js and edrive/main.js.
+// Boost (sport display): 0.01 bar or 1 kPa a step, 0.1 psi a step in the car's pressure unit; 255 = no value.
+const PRESS_UNITS={1:'BAR',2:'KPA',3:'PSI'};
+/** every entry holding `key`, however the list arrives (plain, wrapped, single) - as edrive/main.js */
+function entries(v,key,out){out=out||[];if(v&&typeof v==='object'){if(key in v)out.push(v);else Object.keys(v).forEach((k)=>entries(v[k],key,out));}return out;}
+function one(v,key){const e=entries(v,key)[0];return e?e[key]:undefined;}
 const {flapFor,modeName}=require('./ec_auto');
 function convert(raw,factor,offset,invalid,min,max) {
     if(!M.finite(raw) || raw===invalid) return null;
@@ -17,7 +24,8 @@ class MockProvider {
             rpm:1200+4300*wave,speed:38+72*wave,hv_soc:72-1.2*Math.sin(s*0.01),ev_range:31,
             electric_kw:18*Math.sin(s*0.18),regen_kw:Math.min(0,18*Math.sin(s*0.18)),fuel:4.1,
             energy_used:4.2,electric_share:68,drive_source:'Hybrid',drive_mode:'Sport',charging:'Not connected',charge_energy:9.8,
-            baro_bar:1.013,manifold_bar:1.013+0.78+0.64*Math.sin(s*0.3)};
+            baro_bar:1.013,manifold_bar:1.013+0.78+0.64*Math.sin(s*0.3),
+            hv_v:352-0.12*18*Math.sin(s*0.18),hv_temp:24,edrive_pct:Math.round(60*Math.sin(s*0.18)),regen_energy:0.6};
         Object.keys(data).forEach((k)=>this.store.put(k,data[k],'mock','Deterministic emulator/demo model'));
         const boost=M.boostFrom(this.store.get('manifold_bar'),this.store.get('baro_bar'));
         this.store.put('boost',boost,'mock','DEMO: manifold absolute minus atmospheric pressure');
@@ -31,7 +39,7 @@ class MockProvider {
 class MguProvider {
     constructor(ctx,store) { this.ctx=ctx;this.store=store;this.subscriptions=[];this.timers=[];this.stopped=false;this.generation=0; }
     start() {
-        this.stopped=false;const generation=++this.generation;
+        this.stopped=false;const generation=++this.generation;this.pressUnit=null;
         const source=process.env.AHG_EMULATOR==='1'?'mock':'mgu';
         const put=(key,value,provenance)=>{ if(!this.stopped && generation===this.generation) this.store.put(key,value,source,provenance); };
         this.subscribe(CDS,{
@@ -45,6 +53,26 @@ class MguProvider {
         this.subscribe(FES,{statusFESVehicleDynamicSwitchHMI:(v)=>{
             const raw=v&&v.actualValueModeDrivingExperience;
             put('drive_mode',flapFor(raw)?modeName(raw):null,FES+'.statusFESVehicleDynamicSwitchHMI');
+        },statusSwitchDriveDynamicSport2:(v)=>{
+            const raw=v&&v.displayBoostPressure,k=this.pressUnit==='PSI'?0.1/14.5038:0.01;
+            put('boost',M.finite(raw)&&raw!==255?raw*k:null,FES+'.statusSwitchDriveDynamicSport2.displayBoostPressure ('+(this.pressUnit||'BAR?')+')');
+        }},1000,generation);
+        this.subscribe(UNITS,{statusNewCurrentUnitsStatusExt:(v)=>{
+            const x=v&&v.unitOfMeasurementAirPressure;this.pressUnit=PRESS_UNITS[x]||(['BAR','KPA','PSI'].indexOf(x)>=0?x:null);
+        }},1000,generation);
+        this.subscribe(EFF,{statusBatteryTemperature:(v)=>{
+            const raw=one(v,'actualValueTemperatureHighVoltageStorage');
+            const t=M.finite(raw)&&raw!==255?raw-50:null;
+            put('hv_temp',t!=null&&t>-30&&t<70?t:null,EFF+'.statusBatteryTemperature raw - 50');
+        },statusPowerRelativHybrid:(v)=>{
+            const e=entries(v,'displayActualValuePowerRelativeDrivingElectric')[0];if(!e)return;
+            const d=e.displayActualValuePowerRelativeDrivingElectric,r=e.displayActualValuePowerRelativeRecuperation;
+            if(M.finite(d)&&M.finite(r)&&d<=254&&r<=254)put('edrive_pct',d>0?d:-r,EFF+'.statusPowerRelativHybrid (cluster eDRIVE needle)');
+        }},1000,generation);
+        this.subscribe(LSC,{statusHighVoltageStorage:(v)=>{
+            const x=one(v,'actualValueVoltageHighVoltageStorage');if(!M.finite(x))return;
+            const volts=x>1500?x/10:x,cur=this.store.get('hv_v');
+            if(volts>150&&volts<500&&!(cur.quality==='live'&&String(cur.provenance).indexOf('SME')===0))put('hv_v',volts,LSC+'.statusHighVoltageStorage');
         }},1000,generation);
     }
     subscribe(iface,handlers,delay,generation) {
@@ -66,6 +94,6 @@ class MguProvider {
     setVisible() {}
     stop() { this.stopped=true;this.generation++;this.timers.forEach(clearTimeout);this.timers=[];
         this.subscriptions.forEach((s)=>{if(s.shutdown)s.shutdown();});this.subscriptions=[]; }
-    capabilities() { return {mode:'read-only',signals:['rpm','oil','coolant','speed','drive_mode'],vehicleWrites:false}; }
+    capabilities() { return {mode:'read-only',signals:['rpm','oil','coolant','speed','drive_mode','boost','hv_temp','edrive_pct','hv_v'],vehicleWrites:false}; }
 }
 module.exports={MockProvider,MguProvider,convert};

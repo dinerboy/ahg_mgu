@@ -7,10 +7,16 @@ The owner's later request enables control testing, superseding the original read
 | RPM | CDS.statusEngineSpeed2.actualValueRPMEngineCrankshaft × 0.25 | Invalid 65535 rejected; stale after 3 seconds |
 | Oil / coolant | CDS.statusEngineTemperature; raw − 48 | Invalid 255 rejected; exact firmware needs checking |
 | Speed | Vehicle2.statusCarSpeed2.speedVehicleCentreOfGravity / 64 | Invalid 65535 rejected |
-| Boost, 12V, HV and hybrid metrics | No verified real source wired | Labelled demo only; unavailable otherwise |
+| Boost | FES.statusSwitchDriveDynamicSport2.displayBoostPressure (sport display), 0.01 bar / 0.1 psi per the car's pressure unit (Vehicle.statusNewCurrentUnitsStatusExt) | Passive. Scaling marked best-guess upstream (live_data); 255 = no value |
+| HV charge | SME 0x07, 22 DDBC, 0.1 % | Read-only (kit/readonly-diag). From upstream edrive, set up on X5 45e; not yet confirmed on G30 530e |
+| Electric power / recuperation | SME 22 DDB4 (V, fallbacks DD68/DD66/DDEF) x 22 DD69 (A, signed) | Read-only, 1 s. Positive = driving, negative = recuperation/charging |
+| HV voltage / temperature | SME voltage above, or LSCDataSink.statusHighVoltageStorage; Efficiencytainment2.statusBatteryTemperature raw - 50 | Temperature scaling from the X5 45e |
+| eDRIVE needle | Efficiencytainment2.statusPowerRelativHybrid | Passive, % of the cluster scale |
+| 12 V voltage | DME 22 F442 (or OBD 01 42, IBS 402B/5853, EGS 0x18) | Read-only, every 5 s |
+| Drive source, charging, trip energy, electric share | Derived from engine speed, battery power and speed | No EV range: no passive signal; upstream learns it from driving |
 | Fault status | No diagnostic scan | Always not scanned |
-| Exhaust flap | Engine Config MG1 adapter; InternalTasu, DME 0x12 | Session armed, compatible positive capability probe; stock support reported upstream on MG1/B48, not this exact car |
-| Ambient colour | ComfortFunctionIuK.ambientLightInteriorColour setter and statusAmbientLightInteriorColour read-back | Session armed, slot 1–12; other fields unfilled as upstream; colours vary |
+| Exhaust flap | Engine Config MG1 adapter; InternalTasu, DME 0x12 | Ready from startup after a read-only capability probe; stock support reported upstream on MG1/B48, not this exact car |
+| Ambient colour | ComfortFunctionIuK.ambientLightInteriorColour setter and statusAmbientLightInteriorColour read-back | Slot 1–12; other fields unfilled as upstream; colours vary |
 | ASD | Simulation only for stock car | Engine Config real ASD is bootmod3-specific |
 | Start-stop memory | Simulation only | No verified stock write found |
 | CPU / RAM | Node os module | Emulator reports host, car reports MGU |
@@ -26,6 +32,6 @@ Ambient config (`apps/ambient_config/ambient.js`) provides the request struct an
 
 The actual kit Recorder supports arcs, polygons, lines, gradients, font atlases and cached layers. The native renderer ignores nested layers, so photographic dial triangle geometry is inlined into each gauge face. Touch/controller targets use the kit's routing and focus system. The 1600×520 logical page maps to the actual MGU display and preserves native HMI areas/popups. Software fallback is slower.
 
-Vehicle requests are serialised. App startup creates no diagnostic link/probes. Arming performs detection and colour-status subscription; a control press is required for actuation. Session disarm attempts OEM return, stops holds, closes colour subscriptions and clears pending colour confirmation. Hide/shutdown disarms. New sessions never replay previous commands. Failure, unknown state and simulation remain distinct. No OEM SDK or native renderer binary is distributed; Store supplies an existing donor SDK.
+Vehicle requests are serialised. From 1.2.0 the car build arms itself at startup: it performs read-only DME detection and the colour-status subscription; a control press (or Hold re-sending the pressed mode) is required for actuation. Detection is retried when the diagnostic link comes up and on the next press. Hiding the app keeps the flap state; quitting attempts OEM hand-back. New sessions never replay previous commands. Failure, unknown state and simulation remain distinct. No OEM SDK or native renderer binary is distributed; Store supplies an existing donor SDK.
 
 In 1.1.1, CDS/Vehicle2/FES getters are polled every second. FES.statusFESVehicleDynamicSwitchHMI adds the real driving-mode name using the upstream enum mapping. Subscription shutdown stops polling. Delayed diagnostic availability triggers read-only DME re-detection; Recheck is available, and blocking reasons persist.

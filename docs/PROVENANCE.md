@@ -23,3 +23,8 @@ Engine Config controller.js, diaglink.js, adapters.js, real_adapters.js and auto
 ## 1.1.1 local patches
 
 The copied ec_diaglink.js now records bounded read outcomes and logs failures; VIN read payloads are omitted from the exported probe list. Diagnostic request bytes and adapter matching are unchanged. kit/runtime/signals.js now clears polling intervals and suppresses callbacks after shutdown. AHG enables the existing pollMs getter option for steady signal freshness and subscribes to the same passive FES driving-mode field used by Engine Config. Controls now watch late availability without replaying commands.
+
+
+## Branding
+
+`art/ahg-logo.png` and `art/ahg-mark.png` are cut out of the owner's After Hours Garage identity package (supplied by the owner, all rights reserved by After Hours Garage) and compiled to renderer cells by `tools/compile-art.js`. `art/exhaust-crop.png` is a crop of `art/exhaust-hero.png`.

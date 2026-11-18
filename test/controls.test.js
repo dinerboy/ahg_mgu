@@ -13,16 +13,21 @@ function fixture(opts){
     control=new Controls(ctx,store,{controller,emulator:!!opts.emulator,demo:()=>!!opts.demo});
     return {control,controller,commands,writes,values,store,availability:(on)=>{link.available=on;listeners.forEach((fn)=>fn(on));},status:(n)=>watcher.statusAmbientLightInteriorColour({statusMenuAmbientePanoramicRoofInteriorLighting:'FARBAUSWAHL_'+n}),advance:(ms)=>{now+=ms;}};
 }
-test('startup sends no probes or commands; vehicle writes require session arming',async()=>{
-    const f=fixture();await f.control.start();assert.equal(f.controller.link,null);
-    await assert.rejects(f.control.request('exhaust','OPEN'),/Arm/);assert.deepEqual(f.commands,[]);await f.control.stop();
+test('in the car the controls arm themselves at startup: read-only detection, no command until a press',async()=>{
+    const f=fixture();await f.control.start();assert.equal(f.control.armed,true);assert.equal(f.control.ready,true);assert.deepEqual(f.commands,[]);
+    const s=await f.control.request('exhaust','OPEN');assert.equal(s.acknowledged,true);assert.deepEqual(f.commands,['OPEN']);await f.control.stop();
+    assert.equal(f.commands[f.commands.length-1],'OEM','quitting hands the flap back to the DME');
+});
+test('a DME that is not reachable at startup keeps the controls armed and is detected later',async()=>{
+    const f=fixture({offline:true});await f.control.start();assert.equal(f.control.armed,true);assert.equal(f.control.ready,false);
+    f.availability(true);await f.control.queue;assert.equal(f.control.ready,true);assert.deepEqual(f.commands,[]);await f.control.stop();
 });
 test('emulator and demo force simulated controls even when vehicle mode is selected',async()=>{
     for(const opts of [{emulator:true},{demo:true}]){const f=fixture(opts);await f.control.start();
         for(const [id,value] of [['exhaust','OPEN'],['asd',true],['startStop',true],['ambientHardware',4]]){
             const s=await f.control.request(id,value);assert.equal(s.source,'simulation');assert.equal(s.actual,value);
         }
-        assert.deepEqual(f.commands,[]);assert.deepEqual(f.writes,[]);await assert.rejects(f.control.arm(),/Choose vehicle/);await f.control.stop();
+        assert.deepEqual(f.commands,[]);assert.deepEqual(f.writes,[]);await assert.rejects(f.control.arm(),/desktop emulator/);await f.control.stop();
     }
 });
 test('armed stock flap preserves acceptance versus unknown physical state and OEM disarm',async()=>{
