@@ -1,3 +1,14 @@
+AHG Control Center 1.3.0 - Gauges, Garage health check, misfire monitor and ambient warning light.
+
+- New Gauges page: boost target vs actual on one dial (target as an outline needle, actual in the accent, the difference underneath, plus load target / actual), eight dials you choose by tapping them (IAT, HPFP, LPFP, ignition timing, engine load, engine power / torque, electric power, gearbox oil, 12 V, HV battery temp and charge, oil, coolant, RPM, speed, misfires), and a power split bar: engine kW (crank torque x rpm from the sport display signals) next to electric kW (measured battery power).
+- New Health page: live misfire monitor (counts per cylinder this driving cycle, from the DME's OBD on-board monitors) and the Garage health check. Run Check reads the engine fast for a few seconds and makes a PASS / CHECK / NO DATA report on misfires, boost target vs actual under load, load target vs actual, fuel pressures, ignition timing, 12 V, HV battery, oil / coolant temperatures, intake air and warm-up behaviour (stalled warm-up, cold over-revs). Reports are saved in the app's data folder (health/, last 20 kept). Limits are loose on purpose: CHECK means have a look, not a diagnosis.
+- Misfire warning on every page when a cylinder passes 50 misfires this cycle, or the total passes 500 (setting Misfire warning).
+- Ambient warning light (setting, on by default): the warning colour slot (default 2) while you rev a cold engine past the safe limit, a short flash of the ready slot (default 5) when the warm-up completes, then your own colour back. At most one change each 1.5 s; a colour you pick yourself meanwhile is kept. Set the two slots to the red and lime of your car's ambient menu.
+- Engine values (all read-only, idrive7-apps car_vitals identifiers): IAT 22 F40F / OBD 0F, HPFP 22 F423 / OBD 23, LPFP 22 F40A / F422, timing OBD 0E, load 22 5813 / 480C, boost target / actual 22 4AB0 / 580B (or F470). They are read every 0.4-0.7 s while Gauges or Health is open and every 5 s otherwise, after boost and in the same one-request-per-cycle scheduler, so boost stays real time.
+- The read-only diagnostic link now also passes OBD service 06 (monitor test results, one MID) for the misfire counts - only for this app's link, and still nothing that writes, codes or actuates.
+- Side bar has 8 pages (Home, Gauges, Controls, Hybrid, Drive, Warm-up, Health, System); new settings for the Gauges dials, power split scale, ambient warning slots and misfire warning.
+- 63 automated checks (new: misfire reader, engine values, health report, misfire alert, ambient warning light, service 06 gate).
+
 AHG Control Center 1.3.0 - versioned release of the latest update.
 
 - Publishes the latest 1.2.0 update as 1.3.0 so MGU Store can recognize a newer app version.

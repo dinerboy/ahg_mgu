@@ -4,7 +4,9 @@ const M=require('./model'),T=require('./theme'),V=require('./reference-view');
 const {Gauge}=require('./gauge'),{MockProvider,MguProvider}=require('./telemetry');
 const {Controls}=require('./controls'),{Diagnostics}=require('./diagnostics');
 const {listSheet}=require('./kit/sheet');
-const IDS=['home','controls','hybrid','drive','warmup','system'];
+const IDS=['home','gauges','controls','hybrid','drive','warmup','health','system'];
+const {HealthMonitor,MisfireAlert,AmbientWarn}=require('./health');
+const path=require('path');
 const {WarmUp}=require('./warmup');
 const {HybridReader}=require('./hybrid');
 const KIT_RED=require('./kit/themes').THEMES.m_red;
@@ -37,13 +39,27 @@ function start(ctx) {
     app.toggleDisplay=()=>ctx.settings.set('displayMode',ctx.settings.get('displayMode')==='dark'?'auto':'dark');
     app.settings=()=>{if(!ctx.sheet(listSheet(ctx.settings,null,{version:ctx.spec.version})))ctx.ui.open('SETTINGS');};
     app.exportReport=()=>{try{app.notice('Saved locally: '+app.diagnostics.export(app.store,app.controls));}catch(e){app.notice('Report unavailable: data directory is not writable');}};
+    // engine values fast while their pages are open or a health check runs
+    const engineFocus=()=>IDS[app.page]==='gauges'||IDS[app.page]==='health'||(app.health&&app.health.wanted());
+    app.misfireAlert=new MisfireAlert();
+    function onMisfire(counts,level){
+        app.health.setMisfire(counts,level);
+        const msg=app.misfireAlert.update(counts,level);
+        if(msg&&ctx.settings.get('misfireAlert')!=='off'){app.notice(msg);app.toastUntil=Date.now()+8000;}
+    }
+    app.health=new HealthMonitor(app.store,{dir:ctx.dataDir?path.join(ctx.dataDir,'health'):null});
+    app.runHealth=()=>{
+        if(!app.health.start(app.warm,(r)=>app.notice('Health check: '+(r.result==='pass'?'all clear':r.result==='attention'?r.attention+' item'+(r.attention>1?'s':'')+' need attention':'not enough data yet')+(r.file?' - saved':''))))return;
+        app.notice('Health check running - reading the engine for a few seconds');
+    };
+    app.resetHealth=()=>{app.health.reset();app.misfireAlert=new MisfireAlert();app.notice('Health statistics cleared - they build up again while you drive');};
     function provider(){
         if(app.provider)app.provider.stop();if(app.hybrid){app.hybrid.stop();app.hybrid=null;}app.store.clear();app.trip.reset();app.gauges.needle={};
         app.demo=ctx.settings.get('demo')==='on';
         app.provider=app.demo?new MockProvider(app.store,Number(ctx.settings.get('sensorHz'))||10):new MguProvider(app.ioCtx,app.store);
         app.provider.start();
         // Read-only HV battery / 12 V reads (kit/readonly-diag: 0x22 only). Not in demo or the emulator.
-        if(!app.demo&&!app.emulator){app.hybrid=new HybridReader(app.ioCtx,app.store);app.hybrid.start().catch((e)=>app.diagnostics.log('hybrid: '+String(e)));}
+        if(!app.demo&&!app.emulator){app.hybrid=new HybridReader(app.ioCtx,app.store,{focus:engineFocus,onMisfire:onMisfire});app.hybrid.start().catch((e)=>app.diagnostics.log('hybrid: '+String(e)));}
         app.diagnostics.log(app.demo?'DEMO provider started: synthetic readings':'Read-only provider started: no demo fallback');
     }
     app.refresh=()=>{provider();app.notice('Readings refreshed; no diagnostic scan or vehicle command');};
@@ -63,7 +79,10 @@ function start(ctx) {
         logTimer=setInterval(()=>{try{const f=app.controls.getState('exhaust');app.driveLog.sample(app.store,{flap:f.source==='simulation'?'':f.readback||''});}catch(e){ctx.log.warn('drive log: '+String(e));}},1000/hz);}
     sampler();
     app.warm=new WarmUp(app.store,ctx.settings);
+    app.ambientWarn=new AmbientWarn(app.controls,(k)=>ctx.settings.get(k),app.warm,app.ioCtx.log);
+    if(app.demo||app.emulator){const mis=[0,0,3,0];app.health.setMisfire(mis,'ok');}
     const tripTimer=setInterval(()=>{app.trip.update(app.store.get('speed'),Date.now());
+        app.health.sample();app.ambientWarn.tick().catch(()=>{});
         const was=app.warm.over;if(app.warm.update()&&!was)app.diagnostics.log('cold over-rev: '+Math.round(app.store.get('rpm').value)+' rpm above safe '+app.warm.limit()+' (oil '+Math.round(app.store.get('oil').value)+' °C)');},200);
     let previous=Date.now();
     const loop=ctx.loop('MAIN',4,async()=>{
@@ -72,7 +91,7 @@ function start(ctx) {
         G.frame(cv,T.kitTheme(KIT_RED),[],-1,[{text:app.controls.simulated?'SIMULATION':app.controls.ready?'FLAP READY':app.controls.busy?'CONNECTING':'NO FLAP',color:app.controls.simulated?T.C.amber:app.controls.ready?T.C.accent:T.C.amber}]);
         V.draw(cv,app,dt);await ctx.ui.image('MAIN_GFX',cv);
     });
-    const stop=async()=>{if(app.hybrid)app.hybrid.stop();clearInterval(logTimer);clearInterval(tripTimer);app.driveLog.stop();app.provider.stop();loop.stop();app.gauges.clear();await app.controls.stop();};
+    const stop=async()=>{if(app.hybrid)app.hybrid.stop();app.health.stop();clearInterval(logTimer);clearInterval(tripTimer);app.driveLog.stop();app.provider.stop();loop.stop();app.gauges.clear();await app.controls.stop();};
     const shutdown=()=>{stop().catch((e)=>ctx.log.warn('shutdown: '+String(e))).then(()=>process.exit(0));};
     process.once('SIGTERM',shutdown);process.once('SIGINT',shutdown);
     app.stop=stop;return app;

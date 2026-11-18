@@ -20,7 +20,7 @@ test('HV reader sends only 0x22 reads to the SME/DME and scales power, charge an
         const key=ecu+':'+data.map((b)=>b.toString(16).toUpperCase().padStart(2,'0')).join('');const d=reply[key];
         const u=d?[sid+0x40].concat(data,d):[0x7f,sid,0x31];assert.ok(accept(u));return u;},cancel(){}};
     const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link});await h.start();h.stop();h.stopped=false;await h.tick();h.stop();
-    sent.forEach((r)=>assert.ok(r[1]===0x22||r[1]===0x01,'read-only: '+r));
+    sent.forEach((r)=>assert.ok(r[1]===0x22||r[1]===0x01||r[1]===0x06,'read-only: '+r));
     assert.equal(store.get('hv_v').value,352);assert.ok(Math.abs(store.get('electric_kw').value-7.04)<1e-9);
     assert.ok(Math.abs(store.get('hv_soc').value-66.6)<1e-9);assert.ok(Math.abs(store.get('voltage').value-14)<1e-9);
 });
@@ -44,7 +44,7 @@ test('boost falls back to the DME: absolute charge pressure minus outside air pr
         const key=ecu+':'+data.map((b)=>b.toString(16).toUpperCase().padStart(2,'0')).join('');const d=reply[key];
         return d?[sid+0x40].concat(data,d):[0x7f,sid,0x31];},cancel(){}};
     const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link});await h.start();h.stop();h.stopped=false;await h.tick();h.stop();
-    sent.forEach((r)=>assert.ok(r[1]===0x22||r[1]===0x01,'read-only: '+r));
+    sent.forEach((r)=>assert.ok(r[1]===0x22||r[1]===0x01||r[1]===0x06,'read-only: '+r));
     assert.ok(Math.abs(store.get('boost').value-0.32)<1e-9,String(store.get('boost').value));assert.match(store.get('boost').provenance,/F470/);
 });
 test('boost is read every cycle; slow reads go one per cycle and back off when the car never answers',async()=>{
@@ -54,10 +54,11 @@ test('boost is read every cycle; slow reads go one per cycle and back off when t
     const link={available:true,physical:async(ecu,sid,data)=>{const key=ecu+':'+data.map((b)=>b.toString(16).toUpperCase().padStart(2,'0')).join('');sent.push(key);
         const d=reply[key];return d?[sid+0x40].concat(data,d):null;},cancel(){}};
     const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link});await h.start();h.stop();h.stopped=false;
-    for(let i=0;i<12;i++){sent.length=0;
+    for(let i=0;i<40;i++){sent.length=0;
         h.tasks().forEach((t)=>{t.due-=1500;}); // 1.5 s pass per cycle
         await h.step();
-        assert.equal(sent.filter((k)=>k==='18:F470').length,1,'boost read once per cycle (cycle '+i+')');
+        assert.ok(sent.filter((k)=>k==='18:F470').length>=1,'boost read every cycle (cycle '+i+')');
+        assert.ok(sent.length<=4,'boost plus at most one slow task per cycle (cycle '+i+'): '+sent);
         assert.ok(sent.filter((k)=>k.indexOf('7:')===0).length<=4,'at most one slow task per cycle');}
     const hv=h.tasks().find((t)=>t.name==='hv');assert.ok(hv.fails>=1);assert.ok(hv.due-Date.now()>100000,'unanswered HV reads back off to 2 min');
     h.stop();assert.ok(Math.abs(store.get('boost').value-0.32)<1e-9);

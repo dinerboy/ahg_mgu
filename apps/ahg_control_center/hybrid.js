@@ -16,7 +16,7 @@
  * Every request goes through kit/readonly-diag.js, which refuses anything but 0x22 reads (and
  * OBD 01/09) before it reaches the car: nothing is written, coded or actuated here.
  */
-const M=require('./model');
+const M=require('./model'),E=require('./engine');
 const SME=0x07;
 const C={
     soc:[{ecu:SME,did:'DDBC',bytes:2,factor:0.1,min:0.5,max:100,timeoutMs:600}],
@@ -34,6 +34,8 @@ const C={
     baro:[{ecu:0x12,did:'F433',bytes:1,factor:1,min:50,max:115,timeoutMs:600},{ecu:0x12,obd:'33',bytes:1,factor:1,min:50,max:115,timeoutMs:600}]
 };
 const POWER_SIGN=-1;          // DD69: negative current = the battery gives power -> positive kW = driving
+// engine values (engine.js): fast while the Gauges / Health page is open or a health check runs, slow otherwise
+const ENGINE_FOCUS_MS=700,CHARGE_FOCUS_MS=400,ENGINE_MS=5000,MISFIRE_FOCUS_MS=4000,MISFIRE_MS=30000;
 const BOOST_MS=100,FAST_MS=1000,SOC_MS=10000,V12_MS=5000,BARO_MS=60000,GEAR_MS=5000,RETRY_FAILS=3,ABSENT_MS=120000,MAX_BACKOFF_MS=600000;
 /** What drives the car now, from engine speed, battery power and speed (all measured). */
 function driveSource(rpm,kw,speed){
@@ -63,9 +65,10 @@ class HybridReader {
         this.stopped=false;
         try{
             const {ReadOnlyDiag}=require('./kit/readonly-diag'),{DidReader}=require('./kit/dids');
-            this.link=this.options.link||new ReadOnlyDiag(this.ctx.signals,this.ctx.log);
+            this.link=this.options.link||new ReadOnlyDiag(this.ctx.signals,this.ctx.log,{monitors:true});
             if(!this.options.link)await this.link.init();
             this.reader=new DidReader(this.link,{ecu:SME});
+            this.misfire=new E.MisfireReader(this.reader,this.ctx.log);
         }catch(e){this.error='Diagnostic link unavailable: '+String(e.message||e);this.ctx.log.warn('hybrid: '+this.error);return;}
         const gen=this.gen=(this.gen||0)+1;
         if(!this.stopped)this.schedule(0,gen);
@@ -80,10 +83,12 @@ class HybridReader {
      */
     schedule(ms,gen){if(!this.stopped&&gen===this.gen){clearTimeout(this.timer);this.timer=setTimeout(()=>{if(this.stopped||gen!==this.gen)return;const t0=Date.now();
         this.step().catch((e)=>this.ctx.log.warn('vehicle read: '+String(e))).then(()=>this.schedule(Math.max(0,BOOST_MS-(Date.now()-t0)),gen));},ms);}}
+    focused(){return !!(this.options.focus&&this.options.focus());}
     put(key,value,note){if(!this.stopped)this.store.put(key,value,'mgu',note);}
     tasks(){
         if(this._tasks)return this._tasks;
         const T=(name,every,run)=>({name,every,run,due:0,fails:0});
+        const label=(c)=>c.obd?'OBD '+c.obd:'22 '+c.did;
         // run() returns a value, null (no answer from any candidate) or undefined (still trying candidates)
         const val=async(name,list,use)=>{const r=await this.one(name,list);if(!r.done)return undefined;if(r.v!=null)use(r.v,list[this.reader.pick[name]||0]);return r.v;};
         this._tasks=[
@@ -97,7 +102,27 @@ class HybridReader {
             T('v12',V12_MS,()=>val('v12',C.v12,(x,c)=>this.put('voltage',x,'12 V: '+(c.did||'OBD 42')))),
             T('gear',GEAR_MS,()=>val('gearbox',C.gearbox,(g,c)=>{
                 if(c.did==='DA12'){if(this.gearFirst==null)this.gearFirst=g;if(Math.abs(g-this.gearFirst)>=1)this.gearMoved=true;}
-                if(c.did!=='DA12'||this.gearMoved)this.put('gearbox',g,'EGS 22 '+c.did);}))];
+                if(c.did!=='DA12'||this.gearMoved)this.put('gearbox',g,'EGS 22 '+c.did);})),
+            // engine.js: DME values for the Gauges and Health pages
+            T('iat',()=>this.focused()?ENGINE_FOCUS_MS*2:ENGINE_MS,()=>val('iat',E.CANDIDATES.iat,(x,c)=>this.put('iat',x,'DME '+label(c)))),
+            T('hpfp',()=>this.focused()?ENGINE_FOCUS_MS:ENGINE_MS,()=>val('hpfp',E.CANDIDATES.hpfp,(x,c)=>this.put('hpfp',x,'DME '+label(c)))),
+            T('lpfp',()=>this.focused()?ENGINE_FOCUS_MS:ENGINE_MS,()=>val('lpfp',E.CANDIDATES.lpfp,(x,c)=>this.put('lpfp',x,'DME '+label(c)))),
+            T('timing',()=>this.focused()?ENGINE_FOCUS_MS:ENGINE_MS,()=>val('timing',E.CANDIDATES.timing,(x,c)=>this.put('timing',x,'DME '+label(c)))),
+            T('load',()=>this.focused()?ENGINE_FOCUS_MS:ENGINE_MS,async()=>{
+                const a=await val('loadActual',E.CANDIDATES.loadActual,(x)=>this.put('load',x,'DME 22 5813'));if(a==null)return a;
+                await val('loadTarget',E.CANDIDATES.loadTarget,(x)=>this.put('load_target',x,'DME 22 480C'));return a;}),
+            T('charge',()=>this.focused()?CHARGE_FOCUS_MS:ENGINE_MS,async()=>{
+                const t=await val('boostTarget',E.CANDIDATES.boostTarget,()=>{});if(t==null)return t;
+                const i=this.reader.pick.boostTarget||0,c=E.CANDIDATES.boostActual[i],m=await this.reader.read(c);
+                this.put('boost_target',(t-this.baro)/100,'DME '+label(E.CANDIDATES.boostTarget[i])+' minus outside air');
+                if(m!=null)this.put('boost_actual',(m-this.baro)/100,'DME '+label(c)+' minus outside air');
+                return t;}),
+            T('misfire',()=>this.focused()?MISFIRE_FOCUS_MS:MISFIRE_MS,async()=>{
+                const counts=await this.misfire.read();
+                if(counts){this.put('misfire_total',this.misfire.total(),'DME '+(this.misfire.mode?'22 F6xx':'OBD 06')+' this driving cycle');
+                    if(this.options.onMisfire)this.options.onMisfire(counts,this.misfire.level());}
+                // not found: the reader waits MIS_RETRY_MS itself, so this is no failure for the scheduler
+                return counts||(this.misfire.mode===null?0:null);})];
         return this._tasks;
     }
     /**
@@ -114,6 +139,7 @@ class HybridReader {
         return {v:null,done:false};
     }
     async runTask(t,now){
+        const every=(x)=>typeof x.every==='function'?x.every():x.every;
         const v=await t.run();
         if(v===undefined){t.due=now;return;}     // still trying candidates: next cycle again
         if(v==null){t.fails++;
@@ -122,14 +148,16 @@ class HybridReader {
             const limit=t.ok?RETRY_FAILS:1;
             if(t.fails>=limit){t.backoff=Math.min(MAX_BACKOFF_MS,t.backoff?t.backoff*2:ABSENT_MS);t.due=now+t.backoff;
                 if(t.fails===limit)this.ctx.log.warn('vehicle read: no answer for '+t.name+', retrying in '+Math.round(t.backoff/1000)+' s');}
-            else t.due=now+t.every;}
-        else{t.fails=0;t.ok=true;t.backoff=0;t.due=now+t.every;}
+            else t.due=now+every(t);}
+        else{t.fails=0;t.ok=true;t.backoff=0;t.due=now+every(t);}
     }
     boostWanted(){const fes=this.store.get('boost');return !(fes.quality==='live'&&String(fes.provenance).indexOf('FES')>=0);}
     /** one cycle: boost, then the most overdue slow task (if any is due) */
     async step(){
         if(this.stopped||!this.reader||(this.link.available===false))return;
-        const now=Date.now();
+        const now=Date.now(),f=this.focused();
+        if(f&&!this.wasFocused)this.tasks().forEach((t)=>{if(typeof t.every==='function'&&!t.backoff)t.due=Math.min(t.due,now);});
+        this.wasFocused=f;
         if(this.boostWanted())await this.readBoost();
         const due=this.tasks().filter((t)=>t.due<=now).sort((x,y)=>x.due-y.due)[0];
         if(due&&!this.stopped)await this.runTask(due,now);
