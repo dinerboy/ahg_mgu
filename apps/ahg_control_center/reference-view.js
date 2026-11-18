@@ -76,7 +76,26 @@ function chip(cv,label,x,y,color){
 function toggle(cv,x,y,on,enabled){
     cv.roundRect(x,y,76,31,15,!enabled?'#1a1b1d':on?'#ae101b':'#292b2d');cv.circle(on?x+60:x+16,y+15,12,enabled?C.text:'#55595d');
 }
-function controls(cv,a){
+// Exhaust smoke from a tailpipe of the hero photo: puffs that billow out, rise, grow and fade.
+// A function of time only, so every frame moves it on. amt 0..1. Stays inside the hero card.
+function alphaHex(c,al){return c+('0'+Math.round(M.clamp(al,0,1)*255).toString(16)).slice(-2);}
+function rnd(n){const x=Math.sin(n*78.233+12.9898)*43758.5453;return x-Math.floor(x);}
+function smoke(cv,ox,oy,dir,reach,amt,ts,seed){
+    if(amt<0.03)return;
+    const N=18,period=2.8;
+    for(let i=0;i<N;i++){
+        const cyc=ts/period+i/N+seed,p=((cyc%1)+1)%1,k=Math.floor(cyc)*31+i; // k: a new random path every cycle
+        const x=ox+dir*(6+p*reach)+(rnd(k)-0.5)*34*p+Math.sin(ts*1.3+i*1.7)*7*p;
+        const y=oy-4+p*8-p*p*80+(rnd(k+7)-0.5)*22*p;
+        const r=7+p*(34+rnd(k+3)*14);
+        const al=amt*0.62*(1-p)*Math.min(1,p*6);
+        if(al<0.01)continue;
+        cv.circle(x,y,r,alphaHex('#c4c9cf',al*0.3));
+        cv.circle(x-r*0.12,y-r*0.1,r*0.7,alphaHex('#d9dde2',al*0.42));
+        cv.circle(x-r*0.2,y-r*0.18,r*0.4,alphaHex('#eff1f4',al*0.5));
+    }
+}
+function controls(cv,a,dt){
     const control=a.controls,sim=control.simulated,flap=control.getState('exhaust'),asd=control.getState('asd'),ss=control.getState('startStop'),ambient=control.getState('ambientHardware');
     // Exhaust flap hero: the photo fills the right of a black card, controls sit on the dark left.
     cv.roundRect(184,85,1386,215,12,'#2f3337');cv.roundRect(185,86,1384,213,11,'#000000'); // photo edge is pure black: no seam
@@ -84,6 +103,14 @@ function controls(cv,a){
     // Round the photo's right corners to match the card.
     [[1558,97,0,90],[1558,288,90,180]].forEach((k)=>{cv.arc(k[0],k[1],11,18,k[2],k[3],C.bg);cv.arc(k[0],k[1],11,12,k[2],k[3],'#2f3337');});
     cv.line(1569,97,1569,288,1,'#2f3337');cv.line(748,86,1558,86,1,'#2f3337');cv.line(748,299,1558,299,1,'#2f3337');
+    // Smoke follows the flap: Open -> right pipe, Closed -> left pipe, Auto -> a light wisp from both.
+    // On the car it follows the DME read-back, so it only shows what the DME reports.
+    const fstate=sim?flap.actual:flap.readback;
+    const target={l:fstate==='CLOSED'?1:fstate==='OPEN'?0:0.3,r:fstate==='OPEN'?1:fstate==='CLOSED'?0:0.3};
+    a.smoke=a.smoke||{l:target.l,r:target.r};
+    a.smoke.l=M.damp(a.smoke.l,target.l,(dt||0)*0.25);a.smoke.r=M.damp(a.smoke.r,target.r,(dt||0)*0.25);
+    const ts=Date.now()/1000;
+    smoke(cv,1343,236,-1,150,a.smoke.l,ts,0);smoke(cv,1431,236,0.45,70,a.smoke.r,ts,0.37);
     cv.line(198,86,1556,86,1,'#b3b8bd44');
     text(cv,'EXHAUST',212,122,13,C.muted);bold(cv,'Exhaust Flap',212,154,28);
     chip(cv,sim?'SIMULATION':control.armed?'ARMED':'DISARMED',420,132,sim?C.amber:control.armed?C.red:'#9aa0a6');
@@ -93,7 +120,7 @@ function controls(cv,a){
     const flapLine=flap.error||(sim?'Simulation · flap '+(flap.actual==='OEM'?'auto':flap.actual?flap.actual.toLowerCase():'not set')+'. Choose Vehicle mode in Settings to drive the real flap.':
         !control.armed?'Arm the session, then pick a mode.':flap.pending?'Sending request...':flap.acknowledged==null?'Armed - tap a mode or use the controller.':
         'DME '+(flap.acknowledged?'accepted':'did not accept')+' · ECU read-back: '+(flap.readback||'Unknown'));
-    wrap(flapLine,80,2).forEach((l,i)=>text(cv,l,212,259+i*19,15,flap.error?C.amber:'#c9cdd1'));
+    wrap(flapLine,92,2).forEach((l,i)=>text(cv,l,212,259+i*19,15,flap.error?C.amber:'#c9cdd1'));
     button(cv,sim?'Change mode':control.busy?'Detecting...':control.armed?'Disarm':'Arm session',1388,100,168,40,sim?()=>a.settings():()=>a.armControls(),'arm-session',control.armed);
     if(!sim&&control.armed)button(cv,'Recheck',1388,148,168,40,()=>a.recheckControls(),'recheck-link');
     // ASD + start-stop: only switchable in simulation; on a stock car they are shown as unavailable.
