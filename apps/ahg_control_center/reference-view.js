@@ -1,7 +1,7 @@
 'use strict';
 const T=require('./theme'),M=require('./model'),Art=require('./art');
 const {C,text,bold,card,button,lineIcon}=T;
-const PAGES=['Home','Gauges','Controls','Hybrid','Drive','Warm-up','Health','System'];
+const PAGES=['Home','Controls','Hybrid','Drive','Warm-up','Health','System'];
 const E=require('./engine');
 function field(a,k,d){return M.format(a.store.get(k),d);}
 function withUnit(a,k,d,unit){const v=field(a,k,d);return v==='--'?v:v+' '+unit;}
@@ -22,7 +22,7 @@ function logState(a){return a.driveLog?a.driveLog.status():{state:'off',text:'Lo
 function navIcon(cv,label,x,y,col){
     if(label==='Drive'){cv.arc(x+11,y+12,8,10,-90,90,col);cv.line(x+11,y+12,x+17,y+6,2,col);cv.circle(x+11,y+12,2.5,col);}
     else if(label==='Warm-up'){cv.roundRect(x+8,y,6,16,3,col);cv.circle(x+11,y+17,5,col);cv.line(x+11,y+5,x+11,y+17,2,'#0a0a0a');}
-    else if(label==='Gauges'){cv.arc(x+11,y+12,9,11,-120,120,col);cv.line(x+11,y+12,x+17,y+4,2,col);cv.circle(x+11,y+12,2.5,col);cv.line(x+3,y+20,x+19,y+20,1.5,col);}
+    else if(label==='Home'){cv.arc(x+11,y+12,9,11,-120,120,col);cv.line(x+11,y+12,x+17,y+4,2,col);cv.circle(x+11,y+12,2.5,col);cv.line(x+3,y+20,x+19,y+20,1.5,col);}
     else if(label==='Health'){cv.polyline([[x,y+12],[x+5,y+12],[x+8,y+4],[x+12,y+20],[x+15,y+10],[x+17,y+12],[x+22,y+12]],2,col);}
     else icon(cv,label.toLowerCase(),x,y,21,col);
 }
@@ -33,11 +33,11 @@ function header(cv,a){
     text(cv,'CONTROL CENTER',85,101,10,C.muted,'center');
     cv.line(158,48,158,470,1,'#333538');
     PAGES.forEach((label,i)=>{
-        const y=108+i*45,on=i===a.page,col=on?C.text:'#c9cccf';
-        if(on){cv.card(16,y,132,41,5,[[0,'#0a0a0a'],[0.45,C.accentDark],[1,C.accentDeep]]);cv.line(16,y+1,16,y+40,3,C.accent);}
-        navIcon(cv,label,25,y+10,col);
-        text(cv,label,56,y+27,16,on?C.text:'#d6d8da');
-        cv.target(16,y,132,41,()=>a.navigate(i),'nav-'+i,6);
+        const y=112+i*50,on=i===a.page,col=on?C.text:'#c9cccf';
+        if(on){cv.card(16,y,132,44,5,[[0,'#0a0a0a'],[0.45,C.accentDark],[1,C.accentDeep]]);cv.line(16,y+1,16,y+43,3,C.accent);}
+        navIcon(cv,label,25,y+11,col);
+        text(cv,label,56,y+28,17,on?C.text:'#d6d8da');
+        cv.target(16,y,132,44,()=>a.navigate(i),'nav-'+i,6);
     });
     bold(cv,'BMW 530e',870,65,19,C.text,'center');
     const toast=a.toast&&Date.now()<a.toastUntil;
@@ -55,17 +55,6 @@ function header(cv,a){
         const color=i===5&&log.state==='rec'?C.red:i===5&&log.state==='error'?C.amber:C.text;
         if(i===5&&log.state==='rec')cv.circle(x+62,500,5,C.red);
         bold(cv,e[1],x+(i===5&&log.state==='rec'?74:62),505,16,color);if(i<5)cv.line(x+218,487,x+218,510,1,'#53565a');});
-}
-function home(cv,a,dt){
-    const p=[[650,218,160],[1070,218,160],[407,375,85],[1314,375,85]];
-    ['gauge1','gauge2','gauge3','gauge4'].forEach((slot,i)=>{
-        const key=a.ctx.settings.get(slot),s=Object.assign({},M.DEFINITIONS[key]||M.DEFINITIONS.oil);
-        if(key==='boost')s.max=a.ctx.settings.get('boostMax')||2;
-        if(key==='oil')s.label='Oil Temp';if(key==='coolant')s.label='Coolant Temp';if(key==='voltage')s.label='Voltage (12 V)';
-        if(key==='rpm')s.label='Engine';if(key==='speed')s.label='Speed';
-        a.gauges.draw(cv,slot+'-'+key,s,a.store.get(key),p[i][0],p[i][1],p[i][2],dt);
-    });
-    Art.draw(cv,'logo',712,396,296,74); // primary logo, between the small gauges
 }
 // Segmented control: one rounded track, the chosen segment filled in AHG red.
 function segmented(cv,items,x,y,w,h){
@@ -106,7 +95,7 @@ function smoke(cv,ox,oy,dir,reach,amt,ts,seed){
     }
 }
 function controls(cv,a,dt){
-    const control=a.controls,sim=control.simulated,flap=control.getState('exhaust'),ambient=control.getState('ambientHardware');
+    const control=a.controls,sim=control.simulated,flap=control.getState('exhaust');
     // Exhaust flap hero: the photo fills the right of a black card, controls sit on the dark left.
     cv.roundRect(184,85,1386,215,12,'#2f3337');cv.roundRect(185,86,1384,213,11,'#000000'); // photo edge is pure black: no seam
     Art.draw(cv,'exhaust',748,86,820,213); // pre-cropped to exactly this box (art/exhaust-crop.png)
@@ -142,20 +131,13 @@ function controls(cv,a,dt){
     cv.arc(925,342,15,18,-120,120,C.text);cv.line(925,342,935,333,2,C.text);cv.circle(925,342,3,C.text);
     bold(cv,'Close Guard',966,337,20);text(cv,'Closed hands back to auto above this engine speed',966,361,14,C.muted);
     button(cv,limit+' rpm',1404,322,146,40,()=>a.cycleSetting('closeLimit'),'close-guard');
-    // Ambient lighting: on the car the highlighted preset is the one the car confirmed.
-    card(cv,184,383,1386,86);icon(cv,'system',208,411,29,C.text);bold(cv,'Ambient Lighting',258,418,21);
-    let ambientLine=sim?'Simulation · slot '+(ambient.actual||'--'):ambient.error?ambient.error:ambient.pending?'Sending slot '+ambient.desired+'...':ambient.actual?'Car reports slot '+ambient.actual:'Waiting for car colour status';
-    const aw=a.ambientWarn;
-    if(aw&&aw.showing!=null)ambientLine=(aw.warm&&aw.warm.over?'Warning light: cold over-rev':'Warning light: engine warm')+' · slot '+aw.showing;
-    text(cv,fit(ambientLine,36),258,446,15,ambient.error?C.amber:C.muted);
-    const swatch={comfort:C.blue,sport:C.red,night:'#a77be0',custom:'#e3b55c'};
-    ['comfort','sport','night','custom'].forEach((p,i)=>{
-        const x=611+i*237,slot=Number(a.ctx.settings.get('slot_'+p))||i+1;
-        const on=sim?a.ctx.settings.get('profile')===p:ambient.actual===slot;
-        button(cv,'',x,395,221,62,()=>a.setProfile(p),'profile-'+p,on);
-        cv.circle(x+30,426,11,swatch[p]);cv.arc(x+30,426,13,15,0,360,swatch[p]+'66');
-        bold(cv,p[0].toUpperCase()+p.slice(1),x+54,424,18,C.text);text(cv,'Slot '+slot,x+54,445,13,C.muted);
-    });
+    // Flap status: what the DME reports and when the automation hands back
+    card(cv,184,385,1386,84);
+    const rows=[['ECU read-back',sim?(flap.actual==='OEM'?'Auto':flap.actual?flap.actual[0]+flap.actual.slice(1).toLowerCase():'--'):(flap.readback?flap.readback[0]+flap.readback.slice(1).toLowerCase():'--')],
+        ['DME',sim?'Simulation':!control.ready?(control.busy?'Detecting...':'Not detected'):flap.acknowledged==null?'Ready':flap.acknowledged?'Accepted':'Not accepted'],
+        ['Engine',lv(a,'rpm')==null?'--':Math.round(lv(a,'rpm'))+' rpm'],
+        ['Hold',hold?'Every 15 s':'Off'],['Close guard',limit+' rpm']];
+    rows.forEach((r,i)=>{const x=212+i*272;text(cv,r[0],x,418,14,C.muted);bold(cv,r[1],x,447,20,C.text);if(i)cv.line(x-22,404,x-22,452,1,'#36393d');});
 }
 function metric(cv,label,value,unit,x,y,w,h,color){
     card(cv,x,y,w,h);text(cv,label,x+22,y+27,16,C.muted);bold(cv,value,x+22,y+h-16,28,color||C.text);text(cv,unit,x+w-18,y+h-18,15,C.muted,'right');
@@ -187,16 +169,7 @@ function hybrid(cv,a){
     const t=lv(a,'hv_temp');metric(cv,'HV Battery',withUnit(a,'hv_v',0,'V'),t!=null?Math.round(t)+' °C':'',894,85,294,86);
     metric(cv,'Electric Power',pwField(a,'electric_kw',1),pwUnit(a),530,187,319,76,kw!=null&&kw<0?C.green:null);
     metric(cv,'Recuperation',pwField(a,'regen_kw',1),pwUnit(a),865,187,323,76,C.green);
-    Art.draw(cv,'car',300,270,480,160);
-    // Energy flow, from measured battery power: blue to the wheels when driving, green back when recuperating.
-    if(kw!=null&&Math.abs(kw)>0.5){
-        const col=kw>0?C.blue:C.green,dir=kw>0?1:-1,speed=16+Math.min(60,Math.abs(kw)*2.4);
-        cv.line(420,405,702,405,2,col);
-        for(let i=0;i<6;i++)cv.card(540+i*14,396,12,19,2,kw>0?[[0,'#8eeaff'],[0.45,'#258cd1'],[1,'#0b478d']]:[[0,'#b9ffc0'],[0.45,'#3fcf55'],[1,'#13702a']]);
-        for(let i=0;i<4;i++){const o=((a.elapsed*speed+i*62)%248),x=dir>0?424+o:672-o;cv.fill(dir>0?[[x,401],[x+7,405],[x,409]]:[[x+7,401],[x,405],[x+7,409]],col);}
-    }else{for(let i=0;i<6;i++)cv.card(540+i*14,396,12,19,2,[[0,'#6d747b'],[1,'#2c3135']]);}
-    if(!a.demo&&!hasSoc&&kw==null)text(cv,'Waiting for the HV battery (SME). Signal Viewer on System shows what arrives.',1188,425,14,C.amber,'right');
-    else text(cv,'Illustration only',1188,425,13,C.muted,'right');
+    powerFlow(cv,a,kw,hasSoc);
     card(cv,1204,85,366,93);bold(cv,'Energy (This Drive)',1223,115,20);text(cv,a.demo?'DEMO readings':'Measured battery power',1223,150,15,C.muted);
     card(cv,1204,191,366,218);
     const rows=[['Distance',a.trip.known?a.trip.km.toFixed(1)+' km':'--'],['Electric share',withUnit(a,'electric_share',0,'%')],['Energy used',withUnit(a,'energy_used',2,'kWh')],['Recovered',withUnit(a,'regen_energy',2,'kWh')]];
@@ -207,6 +180,33 @@ function hybrid(cv,a){
     text(cv,'12 V battery',560,455,15,C.muted);bold(cv,withUnit(a,'voltage',1,'V'),680,455,15,C.text);
     const e=lv(a,'edrive_pct');text(cv,'eDRIVE',900,455,15,C.muted);bold(cv,e==null?'--':e<0?'Regen '+(-e)+'%':e+'%',980,455,15,e!=null&&e<0?C.green:C.text);
     text(cv,'HV voltage',1200,455,15,C.muted);bold(cv,withUnit(a,'hv_v',0,'V'),1320,455,15,C.text);
+}
+// Power flow: battery <-> e-motor / gearbox <- engine, from what the car measures. A line carries moving dots
+// while power flows over it: blue from the battery, green back into it, the accent from the engine.
+function flowLine(cv,x1,x2,y,on,col,dir,speed,t){
+    cv.line(x1,y,x2,y,4,'#2a2d31');
+    if(!on)return;
+    cv.line(x1,y,x2,y,2,col+'88');
+    const len=x2-x1,gap=26;
+    for(let i=0;i<Math.ceil(len/gap);i++){const o=((t*speed+i*gap)%len+len)%len,x=dir>0?x1+o:x2-o;cv.circle(x,y,4,col);}
+}
+function flowNode(cv,x,y,w,h,title,value,sub,col,on){
+    cv.roundRect(x,y,w,h,10,on?col:'#3a3e43');cv.roundRect(x+1.5,y+1.5,w-3,h-3,9,'#0c0e10');
+    if(on)cv.roundRect(x+1.5,y+12,4,h-24,2,col);
+    text(cv,title,x+20,y+24,13,C.muted);bold(cv,value,x+20,y+52,21,on?C.text:'#9aa0a6');
+    if(sub)text(cv,sub,x+w-16,y+52,15,on?col:C.muted,'right');
+}
+function powerFlow(cv,a,kw,hasSoc){
+    card(cv,184,316,1004,104);
+    const rpm=lv(a,'rpm'),eng=lv(a,'eng_power'),sp=lv(a,'speed'),soc=lv(a,'hv_soc'),t=a.elapsed||0;
+    const batOn=kw!=null&&Math.abs(kw)>0.5,batCol=kw!=null&&kw<0?C.green:C.blue,engOn=rpm!=null&&rpm>400;
+    const P=(v)=>Math.round(Math.abs(pw(a,v)))+' '+pwUnit(a);
+    flowNode(cv,204,330,250,76,'HV BATTERY',soc==null?'--':Math.round(soc)+' %',batOn?(kw<0?'+':'')+P(kw):'',batCol,batOn);
+    flowNode(cv,571,330,250,76,'E-MOTOR · 8HP',sp==null?'--':Math.round(sp)+' km/h',batOn||engOn?'to wheels':'',C.text,batOn||engOn);
+    flowNode(cv,918,330,250,76,'ENGINE',engOn?Math.round(rpm)+' rpm':rpm==null?'--':'Off',engOn&&eng!=null&&eng>1?P(eng):'',C.accent,engOn);
+    flowLine(cv,454,571,368,batOn,batCol,kw!=null&&kw<0?-1:1,20+Math.min(80,Math.abs(kw||0)*2),t);
+    flowLine(cv,821,918,368,engOn,C.accent,-1,20+Math.min(80,(eng||0)*0.8),t);
+    if(!a.demo&&!hasSoc&&kw==null)text(cv,'Waiting for the HV battery (SME) - the Signal Viewer on System shows what arrives',1172,412,12,C.amber,'right');
 }
 // Real-data page: what the car actually provides plus the drive log.
 function drive(cv,a){
@@ -395,5 +395,12 @@ function system(cv,a){
     const actions=[['App Log',()=>{a.systemMode='logs';a.logOffset=0;}],['Signal Viewer',()=>{a.systemMode='signals';a.logOffset=0;}],['Export Diagnostics',()=>a.exportReport()],['Settings',()=>a.settings()]];
     actions.forEach((r,i)=>button(cv,r[0],184+i*350,425,336,44,r[1],'system-'+i));
 }
-function draw(cv,a,dt){header(cv,a);[home,gaugesPage,controls,hybrid,drive,warmup,healthPage,system][a.page](cv,a,dt);coldAlert(cv,a);}
-module.exports={draw,PAGES,wrap,fit};
+function draw(cv,a,dt){
+    header(cv,a);
+    // one page failing (a reading the code did not expect) must not take the app down: show it, log it once
+    try{[gaugesPage,controls,hybrid,drive,warmup,healthPage,system][a.page](cv,a,dt);}
+    catch(e){const m=String(e&&e.message||e);text(cv,'This page hit an error: '+fit(m,90),200,140,16,C.amber);
+        if(a.lastDrawError!==m){a.lastDrawError=m;if(a.diagnostics&&a.diagnostics.log)a.diagnostics.log('draw error (page '+PAGES[a.page]+'): '+String(e&&e.stack||e));}}
+    coldAlert(cv,a);
+}
+module.exports={draw,PAGES,GP,wrap,fit};

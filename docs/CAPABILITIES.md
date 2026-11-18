@@ -1,4 +1,4 @@
-# Capabilities — AHG Control Center 1.3.0
+# Capabilities — AHG Control Center 1.4.2
 
 The owner's later request enables control testing, superseding the original read-only V1 brief for the operations below. Exact physical vehicle compatibility remains unverified. See CONTROL_TESTING.md for steps and limits.
 
@@ -19,10 +19,8 @@ The owner's later request enables control testing, superseding the original read
 | Engine torque / power | FES.statusActualValueTorque2 (× 0.5 − 1023.5 Nm, ≥ 4095 invalid); power = torque × rpm / 9549; FES.statusVehicleDynamicEngine sport-display % | Passive |
 | Misfires | DME OBD 06 MID A2.. test 0C (this driving cycle), else 22 F6A2..; cylinders from MID A0 | Read-only; service 06 is passed only by this app's link ({ monitors: true }) |
 | Health check | Statistics of the readings above; JSON report in data/health | Advisory; loose limits |
-| Ambient warning light | The same ambient setter as below, slots from settings | Off by setting; 1.5 s minimum between changes; restores the driver's colour |
 | Fault status | No diagnostic scan | Always not scanned |
 | Exhaust flap | Engine Config MG1 adapter; InternalTasu, DME 0x12 | Ready from startup after a read-only capability probe; stock support reported upstream on MG1/B48, not this exact car |
-| Ambient colour | ComfortFunctionIuK.ambientLightInteriorColour setter and statusAmbientLightInteriorColour read-back | Slot 1–12; other fields unfilled as upstream; colours vary |
 | ASD | Simulation only for stock car | Engine Config real ASD is bootmod3-specific |
 | Start-stop memory | Simulation only | No verified stock write found |
 | CPU / RAM | Node os module | Emulator reports host, car reports MGU |
@@ -32,7 +30,7 @@ The owner's later request enables control testing, superseding the original read
 
 Source is pinned at idrive7-apps bf4b190f64fe50740657d926b5592070665d2408. Engine Config (`apps/live_adjustments`, manifest 0.9.8) provides controller.js, diaglink.js, adapters.js, real_adapters.js and auto.js. Copies here are prefixed ec_ and local requires renamed accordingly. Stock MG1 commands, adapter matching, response matching, request/acceptance/read-back separation, hold and RPM safeguards are retained. AHG does not call its tuner, map, cooling, burbles or xDrive operations.
 
-Ambient config (`apps/ambient_config/ambient.js`) provides the request struct and colour-slot parser. AHG uses those pure helpers with its own explicit-session controller: no driving-mode follower, automatic colour writes or ambient animations are started. The SDK signals.set/field setter is the existing transport.
+The ambient colour control was removed in 1.4.0: the app writes nothing to the car's comfort functions.
 
 ## Rendering and lifecycle
 
@@ -42,6 +40,6 @@ Vehicle requests are serialised. From 1.2.0 the car build arms itself at startup
 
 In 1.1.1, CDS/Vehicle2/FES getters are polled every second. FES.statusFESVehicleDynamicSwitchHMI adds the real driving-mode name using the upstream enum mapping. Subscription shutdown stops polling. Delayed diagnostic availability triggers read-only DME re-detection; Recheck is available, and blocking reasons persist.
 
-## Temperature colour guidance (1.4.1)
+## Temperature colour guidance (1.4.2)
 
 The coolant dial now starts amber at 115 C and red at 120 C. The previous 110 C red band was misleading for the owner's steady operating reading. These are app advisory colours, not calibrated BMW warning limits. The Health temperature criteria are unchanged; 108 C oil and 110 C coolant pass that item. Factory warnings take precedence.

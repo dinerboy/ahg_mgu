@@ -11,7 +11,7 @@ function fixture(opts){
         watch:async(i,n,h)=>{watcher=h;return {proxy:{},shutdown:async()=>{}};},
         set:async(p,f,v)=>{writes.push({f,v});if(opts.failSet)throw new Error('setter failed');}}};
     control=new Controls(ctx,store,{controller,emulator:!!opts.emulator,demo:()=>!!opts.demo});
-    return {control,controller,commands,writes,values,store,availability:(on)=>{link.available=on;listeners.forEach((fn)=>fn(on));},status:(n)=>watcher.statusAmbientLightInteriorColour({statusMenuAmbientePanoramicRoofInteriorLighting:'FARBAUSWAHL_'+n}),advance:(ms)=>{now+=ms;}};
+    return {control,controller,commands,writes,values,store,availability:(on)=>{link.available=on;listeners.forEach((fn)=>fn(on));},advance:(ms)=>{now+=ms;}};
 }
 test('in the car the controls arm themselves at startup: read-only detection, no command until a press',async()=>{
     const f=fixture();await f.control.start();assert.equal(f.control.armed,true);assert.equal(f.control.ready,true);assert.deepEqual(f.commands,[]);
@@ -24,7 +24,7 @@ test('a DME that is not reachable at startup keeps the controls armed and is det
 });
 test('emulator and demo force simulated controls even when vehicle mode is selected',async()=>{
     for(const opts of [{emulator:true},{demo:true}]){const f=fixture(opts);await f.control.start();
-        for(const [id,value] of [['exhaust','OPEN'],['asd',true],['startStop',true],['ambientHardware',4]]){
+        for(const [id,value] of [['exhaust','OPEN'],['asd',true],['startStop',true]]){
             const s=await f.control.request(id,value);assert.equal(s.source,'simulation');assert.equal(s.actual,value);
         }
         assert.deepEqual(f.commands,[]);assert.deepEqual(f.writes,[]);await assert.rejects(f.control.arm(),/desktop emulator/);await f.control.stop();
@@ -66,18 +66,6 @@ test('disconnect cancels previous override and reconnect does not replay it',asy
     const f=fixture();await f.control.arm();await f.control.request('exhaust','OPEN');
     f.availability(false);assert.equal(f.control.ready,false);assert.equal(f.control.auto.desired,'OEM');
     f.availability(true);await f.control.queue;await f.control.auto.tick();assert.deepEqual(f.commands,['OPEN']);await f.control.stop();
-});
-test('ambient setter uses upstream unfilled fields, confirms only matching status and rate limits',async()=>{
-    const f=fixture();await f.control.arm();f.status(1);const s=await f.control.request('ambientHardware',3);
-    assert.equal(s.acknowledged,true);assert.equal(s.pending,true);assert.equal(s.actual,1);assert.equal(s.readback,null);
-    assert.equal(f.writes[0].v.controlMenuAmbientePanoramicRoofInteriorLighting,'FARBAUSWAHL_3');
-    assert.equal(f.writes[0].v.controlModeAmbientePanoramicRoofInteriorLighting,'SIGNAL_UNBEFUELLT');
-    f.status(3);assert.equal(f.control.getState('ambientHardware').pending,false);assert.equal(f.control.getState('ambientHardware').readback,3);
-    await assert.rejects(f.control.request('ambientHardware',4),/1.5/);assert.equal(f.writes.length,1);assert.equal(f.control.getState('ambientHardware').desired,3);await f.control.stop();
-});
-test('ambient failures do not report acceptance or overwrite actual colour',async()=>{
-    const f=fixture({failSet:true});await f.control.arm();f.status(2);await assert.rejects(f.control.request('ambientHardware',4),/setter failed/);
-    const s=f.control.getState('ambientHardware');assert.equal(s.acknowledged,false);assert.equal(s.actual,2);assert.equal(s.pending,false);await f.control.stop();
 });
 test('switching to simulation disarms, returns OEM and clears real state',async()=>{
     const f=fixture();await f.control.arm();await f.control.request('exhaust','OPEN');f.values.controlMode='simulation';await f.control.settingsChanged('controlMode');

@@ -22,8 +22,8 @@ def main():
         assert meta['main'].endswith('.js')
         manifest = json.load(tar.extractfile('package/manifest.json'))['proxies']
         assert manifest['com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu']['methods'] == ['sendTasuRequest']
-        assert manifest['de.bmw.infotainment.misc.ComfortFunctionIuK']['attributes']['ambientLightInteriorColour'] == 'w'
-        for module in ('controls', 'ec_controller', 'ec_diaglink', 'ec_adapters', 'ec_real_adapters', 'ec_auto', 'ec_ambient', 'engine', 'health'):
+        assert 'de.bmw.infotainment.misc.ComfortFunctionIuK' not in manifest, 'ambient setter removed in 1.4.0'
+        for module in ('controls', 'ec_controller', 'ec_diaglink', 'ec_adapters', 'ec_real_adapters', 'ec_auto', 'engine', 'health'):
             assert 'package/javascript/'+module+'.js' in names
     digest = hashlib.sha256(archive.read_bytes()).hexdigest()
     usb_root = dist/f'usb-{version}'

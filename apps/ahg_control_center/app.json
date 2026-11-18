@@ -1,8 +1,8 @@
 {
   "id": "ahg_control_center",
   "title": "AHG Control Center",
-  "description": "After Hours Garage dashboard for ID7: live gauges, hybrid battery, drive logging and stock MG1 exhaust flap and ambient colour control.",
-  "version": "1.4.1",
+  "description": "After Hours Garage dashboard for ID7: live gauges, hybrid battery, drive logging, health check and stock MG1 exhaust flap control.",
+  "version": "1.4.2",
   "vendor": "After Hours Garage",
   "license": "MIT",
   "loggingId": "AHG1",
@@ -31,11 +31,6 @@
       "_broadcasts": [
         "sendTasuResponse"
       ]
-    },
-    "de.bmw.infotainment.misc.ComfortFunctionIuK": {
-      "_optional": "Car ambient-colour control unavailable",
-      "ambientLightInteriorColour": "w",
-      "statusAmbientLightInteriorColour": "rs"
     },
     "de.bmw.infotainment.drivingexcitement.FES": {
       "_optional": "Driving-mode, boost, power and torque display unavailable",
@@ -96,7 +91,7 @@
         ],
         [
           "vehicle",
-          "Vehicle \u2014 stock MG1 flap and ambient slots"
+          "Vehicle \u2014 stock MG1 exhaust flap"
         ]
       ],
       "hidden": true
@@ -140,86 +135,6 @@
           "4000",
           "4000 RPM"
         ]
-      ]
-    },
-    {
-      "key": "slot_comfort",
-      "label": "Comfort ambient colour slot",
-      "type": "number",
-      "default": 1,
-      "steps": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ]
-    },
-    {
-      "key": "slot_sport",
-      "label": "Sport ambient colour slot",
-      "type": "number",
-      "default": 2,
-      "steps": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ]
-    },
-    {
-      "key": "slot_night",
-      "label": "Night ambient colour slot",
-      "type": "number",
-      "default": 3,
-      "steps": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ]
-    },
-    {
-      "key": "slot_custom",
-      "label": "Custom ambient colour slot",
-      "type": "number",
-      "default": 4,
-      "steps": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
       ]
     },
     {
@@ -411,11 +326,7 @@
       "options": [
         [
           "home",
-          "Home"
-        ],
-        [
-          "gauges",
-          "Gauges"
+          "Home (gauges)"
         ],
         [
           "controls",
@@ -440,30 +351,6 @@
         [
           "system",
           "System"
-        ]
-      ]
-    },
-    {
-      "key": "profile",
-      "label": "Ambient preset (app accent; buttons send colour)",
-      "type": "choice",
-      "default": "sport",
-      "options": [
-        [
-          "comfort",
-          "Comfort"
-        ],
-        [
-          "sport",
-          "Sport"
-        ],
-        [
-          "night",
-          "Night"
-        ],
-        [
-          "custom",
-          "Custom"
         ]
       ]
     },
@@ -549,130 +436,8 @@
       ]
     },
     {
-      "key": "gauge1",
-      "label": "Primary gauge 1",
-      "type": "choice",
-      "default": "boost",
-      "options": [
-        [
-          "boost",
-          "Boost (sport display)"
-        ],
-        [
-          "rpm",
-          "Engine RPM"
-        ],
-        [
-          "speed",
-          "Vehicle speed"
-        ],
-        [
-          "oil",
-          "Oil temperature"
-        ],
-        [
-          "coolant",
-          "Coolant temperature"
-        ]
-      ],
-      "reset": 3
-    },
-    {
-      "key": "gauge2",
-      "label": "Primary gauge 2",
-      "type": "choice",
-      "default": "oil",
-      "options": [
-        [
-          "oil",
-          "Oil temperature"
-        ],
-        [
-          "coolant",
-          "Coolant temperature"
-        ],
-        [
-          "rpm",
-          "Engine RPM"
-        ],
-        [
-          "speed",
-          "Vehicle speed"
-        ],
-        [
-          "boost",
-          "Boost (sport display)"
-        ],
-        [
-          "voltage",
-          "12 V system voltage"
-        ]
-      ]
-    },
-    {
-      "key": "gauge3",
-      "label": "Small gauge 1",
-      "type": "choice",
-      "default": "coolant",
-      "options": [
-        [
-          "coolant",
-          "Coolant temperature"
-        ],
-        [
-          "oil",
-          "Oil temperature"
-        ],
-        [
-          "rpm",
-          "Engine RPM"
-        ],
-        [
-          "speed",
-          "Vehicle speed"
-        ],
-        [
-          "boost",
-          "Boost (sport display)"
-        ],
-        [
-          "voltage",
-          "12 V system voltage"
-        ]
-      ]
-    },
-    {
-      "key": "gauge4",
-      "label": "Small gauge 2",
-      "type": "choice",
-      "default": "rpm",
-      "options": [
-        [
-          "rpm",
-          "Engine RPM"
-        ],
-        [
-          "voltage",
-          "12 V system voltage"
-        ],
-        [
-          "speed",
-          "Vehicle speed"
-        ],
-        [
-          "coolant",
-          "Coolant temperature"
-        ],
-        [
-          "oil",
-          "Oil temperature"
-        ]
-      ],
-      "reset": 3
-    },
-    {
       "key": "gp1",
-      "label": "Gauges page dial 1",
+      "label": "Home dial 1",
       "type": "choice",
       "default": "iat",
       "options": [
@@ -760,7 +525,7 @@
     },
     {
       "key": "gp2",
-      "label": "Gauges page dial 2",
+      "label": "Home dial 2",
       "type": "choice",
       "default": "hpfp",
       "options": [
@@ -848,7 +613,7 @@
     },
     {
       "key": "gp3",
-      "label": "Gauges page dial 3",
+      "label": "Home dial 3",
       "type": "choice",
       "default": "timing",
       "options": [
@@ -936,7 +701,7 @@
     },
     {
       "key": "gp4",
-      "label": "Gauges page dial 4",
+      "label": "Home dial 4",
       "type": "choice",
       "default": "load",
       "options": [
@@ -1024,7 +789,7 @@
     },
     {
       "key": "gp5",
-      "label": "Gauges page dial 5",
+      "label": "Home dial 5",
       "type": "choice",
       "default": "lpfp",
       "options": [
@@ -1112,7 +877,7 @@
     },
     {
       "key": "gp6",
-      "label": "Gauges page dial 6",
+      "label": "Home dial 6",
       "type": "choice",
       "default": "gearbox",
       "options": [
@@ -1200,7 +965,7 @@
     },
     {
       "key": "gp7",
-      "label": "Gauges page dial 7",
+      "label": "Home dial 7",
       "type": "choice",
       "default": "voltage",
       "options": [
@@ -1288,7 +1053,7 @@
     },
     {
       "key": "gp8",
-      "label": "Gauges page dial 8",
+      "label": "Home dial 8",
       "type": "choice",
       "default": "hv_temp",
       "options": [
@@ -1408,62 +1173,6 @@
           215,
           "292 hp / 215 kW (XtraBoost)"
         ]
-      ]
-    },
-    {
-      "key": "ambientWarn",
-      "label": "Ambient warning light",
-      "type": "choice",
-      "default": "on",
-      "options": [
-        [
-          "on",
-          "On - warn colour on a cold over-rev, ready colour when warm"
-        ],
-        [
-          "off",
-          "Off"
-        ]
-      ]
-    },
-    {
-      "key": "warnSlot",
-      "label": "Ambient warning: cold over-rev colour slot (red)",
-      "type": "number",
-      "default": 2,
-      "steps": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
-      ]
-    },
-    {
-      "key": "readySlot",
-      "label": "Ambient warning: warmed-up colour slot (lime)",
-      "type": "number",
-      "default": 5,
-      "steps": [
-        1,
-        2,
-        3,
-        4,
-        5,
-        6,
-        7,
-        8,
-        9,
-        10,
-        11,
-        12
       ]
     },
     {

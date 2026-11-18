@@ -5,7 +5,9 @@
 const fs=require('fs'),path=require('path'),zlib=require('zlib'),{PNG}=require('pngjs');
 const root=path.resolve(__dirname,'..'),output=path.join(root,'apps/ahg_control_center/assets');
 fs.mkdirSync(output,{recursive:true});
-const specs=[['dial','dial-face.png',512,512],['car','530e-cutout.png',960,320],['exhaust','exhaust-crop.png',820,213],['logo','ahg-logo.png',385,97],['mark','ahg-mark.png',138,59]];
+// dial160 / dial288: the dial face pre-sized for the small and middle dials. Painting the 512 px face into a
+// 160 px dial costs ~14k cells (83k vertices) per dial per frame; these have 2.6k / 6.2k.
+const specs=[['dial','dial-face.png',512,512],['dial160','dial-face.png',160,160],['dial288','dial-face.png',288,288],['exhaust','exhaust-crop.png',820,213],['mark','ahg-mark.png',138,59]];
 for(const spec of specs){
     const name=spec[0],png=PNG.sync.read(fs.readFileSync(path.join(root,'art',spec[1]))),W=spec[2],H=spec[3];
     function sample(x,y){

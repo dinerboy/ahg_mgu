@@ -2,7 +2,7 @@
 
 Native BMW MGU / iDrive 7 dashboard built with the existing [idrive7-apps kit](https://github.com/cauliflowermossgrape/idrive7-apps). Uses the kit's Node 8 runtime, native graphics, touch targets and iDrive focus; no browser or WebView on the car.
 
-**Version 1.4.1: always-ready controls, live hybrid data, drive logging and After Hours Garage branding.** In the car the stock MG1 exhaust flap and ambient colour slots are ready from startup (no Arm button, no demo data). Simulation runs on the desktop emulator only. See [control testing](docs/CONTROL_TESTING.md) and [capabilities](docs/CAPABILITIES.md). Physical vehicle validation is pending. This app does not flash firmware, enable SSH or obtain SSH keys. The separate Windows installer is a different project.
+**Version 1.4.2: gauges Home page, Garage health check, misfire monitor, live hybrid data, drive logging and After Hours Garage branding.** In the car the stock MG1 exhaust flap is ready from startup (no Arm button, no demo data). Simulation runs on the desktop emulator only. See [control testing](docs/CONTROL_TESTING.md) and [capabilities](docs/CAPABILITIES.md). Physical vehicle validation is pending. This app does not flash firmware, enable SSH or obtain SSH keys. The separate Windows installer is a different project.
 
 ![Home with live car signals](screenshots/01-home.png)
 
@@ -10,7 +10,7 @@ The reference design is rebuilt as functional widgets: metal instrument faces, i
 
 ## Install
 
-Download **AHG-Control-Center-1.4.1-Store.zip** from [Releases](https://github.com/dinerboy/ahg_mgu/releases). See [INSTALL](docs/INSTALL.md) for USB and GitHub source installation through the existing MGU Store. Requires an already supported, provisioned ID7 MGU with MGU Store and a compatible stock BMW donor SDK. The recommended GPU renderer is supplied separately by the upstream toolkit. This package does not install or update it.
+Download **AHG-Control-Center-1.4.2-Store.zip** from [Releases](https://github.com/dinerboy/ahg_mgu/releases). See [INSTALL](docs/INSTALL.md) for USB and GitHub source installation through the existing MGU Store. Requires an already supported, provisioned ID7 MGU with MGU Store and a compatible stock BMW donor SDK. The recommended GPU renderer is supplied separately by the upstream toolkit. This package does not install or update it.
 
 ## Run the emulator
 
@@ -29,14 +29,14 @@ python kit/tools/build.py --store-package ahg_control_center
 npm run package
 ```
 
-`npm run package` runs tests, builds the SDK-free OAP archive and verifies its contents. Output: `dist/ahg_control_center@1.4.1.tgz`, a USB catalog ZIP and SHA-256 checksums. No proprietary BMW SDK is redistributed. MGU Store supplies the owner's donor SDK during installation, as supported by its [publishing documentation](https://github.com/robertnisipeanu/mgu-store/blob/main/docs/publishing.md).
+`npm run package` runs tests, builds the SDK-free OAP archive and verifies its contents. Output: `dist/ahg_control_center@1.4.2.tgz`, a USB catalog ZIP and SHA-256 checksums. No proprietary BMW SDK is redistributed. MGU Store supplies the owner's donor SDK during installation, as supported by its [publishing documentation](https://github.com/robertnisipeanu/mgu-store/blob/main/docs/publishing.md).
 
 ## What works
 
 - **Home:** four live gauges. Defaults are RPM, oil, coolant and speed, the signals the car actually provides. Boost and 12 V can still be picked but are demo-only.
 - **Drive:** live speed/RPM/oil/coolant tiles, this drive's distance, time and maximums, and the last three saved drives. In demo mode this page shows the Hybrid mock-up instead.
 - **Drive logging:** live readings are written to `data/drive-logs/drive-*.csv` (1, 2 or 5 samples/s). It runs while other screens are shown, keeps the newest 20 files (20 MB cap each), and saves a summary when you press *Save & New Drive* or 10 minutes after live data stops.
-- **Controls:** Engine Config MG1 Auto/Open/Closed, ready from startup (read-only DME detection; a mode is only sent when pressed). Hold Flap Position (default on) re-sends the mode every 15 s; Close Guard hands back to auto above the chosen rpm. The flap stays put while other screens are shown and is handed back to the DME when the app quits. Ambient colour slots: the highlighted preset is the one the car confirms.
+- **Controls:** Engine Config MG1 Auto/Open/Closed, ready from startup (read-only DME detection; a mode is only sent when pressed). Hold Flap Position (default on) re-sends the mode every 15 s; Close Guard hands back to auto above the chosen rpm. The flap stays put while other screens are shown and is handed back to the DME when the app quits.
 - **System:** live-signal count, logging state, saved log storage, a paged app log and signal viewer, and a diagnostics export.
 - Stale detection, unavailable states and bounded needle movement. Needle damping now follows real frame time, so needles keep up under the software renderer.
 - **Hybrid:** HV charge, electric power, recuperation, HV voltage/temperature, 12 V, derived drive source and trip energy. Sources come from idrive7-apps (see CAPABILITIES); battery identifiers are not yet confirmed on a G30 530e. **Boost** comes from the sport display. Vehicle fault status is not scanned.
