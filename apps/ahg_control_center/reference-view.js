@@ -17,7 +17,6 @@ function icon(cv,name,x,y,size,color){lineIcon(cv,name,x,y,size,color);}
 function duration(sec){if(!M.finite(sec))return '--';sec=Math.max(0,Math.round(sec));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;
     return h?h+' h '+(m<10?'0':'')+m+' min':m?m+' min '+(s<10?'0':'')+s+' s':s+' s';}
 function clock(ms){const d=new Date(ms),p=(n)=>(n<10?'0':'')+n;return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes());}
-function modeText(a){return a.controls.simulated?'SIMULATION · NO CAR WRITES':a.controls.armed?'VEHICLE CONTROLS · ARMED':'VEHICLE CONTROLS · DISARMED';}
 function logState(a){return a.driveLog?a.driveLog.status():{state:'off',text:'Logging off'};}
 function header(cv,a){
     cv.fillRect(12,38,1576,482,C.bg);
@@ -32,8 +31,7 @@ function header(cv,a){
     });
     bold(cv,'BMW 530e',870,65,19,C.text,'center');
     const toast=a.toast&&Date.now()<a.toastUntil;
-    if(toast){cv.roundRect(950,44,620,30,6,'#2a2f35');text(cv,fit(a.toast,74),1560,65,14,C.text,'right');}
-    else text(cv,modeText(a),1565,65,14,a.controls.armed?C.red:C.amber,'right');
+    if(toast){const msg=fit(a.toast,74),w=Math.min(620,msg.length*7.6+36);cv.roundRect(1570-w,44,w,30,15,'#3a3f45');cv.roundRect(1571-w,45,w-2,28,14,'#1b1f23');text(cv,msg,1552,64,14,C.text,'right');}
     cv.line(174,477,1587,477,1,'#717477');
     const flap=a.controls.getState('exhaust'),log=logState(a);
     const entries=[
@@ -59,50 +57,66 @@ function home(cv,a,dt){
     });
     wordmark(cv,716,431,1.8);text(cv,'AFTER HOURS GARAGE',858,453,15,C.text,'center');
 }
-function exhaustIcon(cv,x,y){
-    cv.roundRect(x+4,y+5,34,34,9,'#e0e4e7');cv.roundRect(x+7,y+8,28,28,7,'#080a0b');
-    cv.polyline([[x+28,y+5],[x+54,y+5],[x+65,y+15],[x+71,y+15]],2,C.text);
-    cv.polyline([[x+28,y+39],[x+54,y+39],[x+65,y+30],[x+71,y+30]],2,C.text);
-    cv.arc(x+75,y+23,9,11,0,360,C.text);cv.arc(x+97,y+23,9,11,0,360,C.text);
+// Segmented control: one rounded track, the chosen segment filled in AHG red.
+function segmented(cv,items,x,y,w,h){
+    cv.roundRect(x,y,w,h,12,'#3b3f44');cv.roundRect(x+1,y+1,w-2,h-2,11,'#0b0d0f');
+    const sw=(w-8)/items.length;
+    items.forEach((it,i)=>{const sx=x+4+i*sw;
+        if(it.selected){cv.card(sx,y+4,sw,h-8,9,[[0,'#b3141f'],[1,'#5c070d']]);cv.line(sx+14,y+5,sx+sw-14,y+5,1,'#ff8a8a66');}
+        else if(it.pending){cv.roundRect(sx,y+4,sw,h-8,9,'#5c070d');cv.roundRect(sx+2,y+6,sw-4,h-12,8,'#0b0d0f');}
+        else if(i>0&&!items[i-1].selected)cv.line(sx,y+14,sx,y+h-14,1,'#2e3236');
+        bold(cv,it.label,sx+sw/2,y+h/2+7,19,it.selected?C.text:'#c9cdd1','center');
+        cv.target(sx,y+4,sw,h-8,it.action,it.key,9);});
+}
+function chip(cv,label,x,y,color){
+    const w=label.length*8.6+34;
+    cv.roundRect(x,y,w,26,13,color+'55');cv.roundRect(x+1,y+1,w-2,24,12,'#0b0d0f');
+    cv.circle(x+14,y+13,4,color);bold(cv,label,x+24,y+18,13,color);return w;
 }
 function toggle(cv,x,y,on,enabled){
     cv.roundRect(x,y,76,31,15,!enabled?'#1a1b1d':on?'#ae101b':'#292b2d');cv.circle(on?x+60:x+16,y+15,12,enabled?C.text:'#55595d');
 }
 function controls(cv,a){
     const control=a.controls,sim=control.simulated,flap=control.getState('exhaust'),asd=control.getState('asd'),ss=control.getState('startStop'),ambient=control.getState('ambientHardware');
-    // Exhaust flap
-    card(cv,184,85,1386,135);
-    cv.clip(185,86,1384,133);Art.draw(cv,'exhaust',1120,78,450,150);cv.noclip();
-    exhaustIcon(cv,215,118);bold(cv,'Exhaust Flap',357,117,24);
-    [['Auto','OEM'],['Open','OPEN'],['Closed','CLOSED']].forEach((s,i)=>button(cv,s[0],357+i*262,130,250,46,()=>a.control('exhaust',s[1]),'flap-'+s[1],flap.desired===s[1]&&flap.acknowledged===true));
-    button(cv,sim?'Simulation mode':control.busy?'Detecting...':control.armed?'Disarm / OEM':'Arm session',1180,98,372,42,sim?()=>a.settings():()=>a.armControls(),'arm-session',control.armed);
-    if(!sim&&control.armed)button(cv,'Recheck DME',1180,150,372,42,()=>a.recheckControls(),'recheck-link');
-    const flapLine=flap.error||(sim?'Simulation - state: '+(flap.actual||'not set')+'. Switch Control testing mode to Vehicle in Settings to use the car.':
-        !control.armed?'Disarmed. Press Arm session, then pick a mode.':flap.pending?'Sending request...':flap.acknowledged==null?'Armed. Tap a mode or press the controller to send it.':
+    // Exhaust flap hero: the photo fills the right of a black card, controls sit on the dark left.
+    cv.roundRect(184,85,1386,215,12,'#2f3337');cv.roundRect(185,86,1384,213,11,'#000000'); // photo edge is pure black: no seam
+    Art.draw(cv,'exhaust',748,86,820,213); // pre-cropped to exactly this box (art/exhaust-crop.png)
+    // Round the photo's right corners to match the card.
+    [[1558,97,0,90],[1558,288,90,180]].forEach((k)=>{cv.arc(k[0],k[1],11,18,k[2],k[3],C.bg);cv.arc(k[0],k[1],11,12,k[2],k[3],'#2f3337');});
+    cv.line(1569,97,1569,288,1,'#2f3337');cv.line(748,86,1558,86,1,'#2f3337');cv.line(748,299,1558,299,1,'#2f3337');
+    cv.line(198,86,1556,86,1,'#b3b8bd44');
+    text(cv,'EXHAUST',212,122,13,C.muted);bold(cv,'Exhaust Flap',212,154,28);
+    chip(cv,sim?'SIMULATION':control.armed?'ARMED':'DISARMED',420,132,sim?C.amber:control.armed?C.red:'#9aa0a6');
+    const modes=[['Auto','OEM'],['Open','OPEN'],['Closed','CLOSED']].map((s)=>({label:s[0],key:'flap-'+s[1],action:()=>a.control('exhaust',s[1]),
+        selected:flap.desired===s[1]&&flap.acknowledged===true,pending:flap.desired===s[1]&&flap.pending}));
+    segmented(cv,modes,212,178,540,54);
+    const flapLine=flap.error||(sim?'Simulation · flap '+(flap.actual==='OEM'?'auto':flap.actual?flap.actual.toLowerCase():'not set')+'. Choose Vehicle mode in Settings to drive the real flap.':
+        !control.armed?'Arm the session, then pick a mode.':flap.pending?'Sending request...':flap.acknowledged==null?'Armed - tap a mode or use the controller.':
         'DME '+(flap.acknowledged?'accepted':'did not accept')+' · ECU read-back: '+(flap.readback||'Unknown'));
-    wrap(flapLine,104,2).forEach((l,i)=>text(cv,l,357,195+i*19,15,flap.error?C.amber:C.text));
+    wrap(flapLine,80,2).forEach((l,i)=>text(cv,l,212,259+i*19,15,flap.error?C.amber:'#c9cdd1'));
+    button(cv,sim?'Change mode':control.busy?'Detecting...':control.armed?'Disarm':'Arm session',1388,100,168,40,sim?()=>a.settings():()=>a.armControls(),'arm-session',control.armed);
+    if(!sim&&control.armed)button(cv,'Recheck',1388,148,168,40,()=>a.recheckControls(),'recheck-link');
     // ASD + start-stop: only switchable in simulation; on a stock car they are shown as unavailable.
-    card(cv,184,234,680,74);card(cv,882,234,688,74);
-    icon(cv,'controls',207,256,30,C.text);bold(cv,'ASD',256,264,21);
-    text(cv,sim?'Simulation: '+(asd.actual?'On':'Off'):'Not available on stock software',256,292,15,C.muted);
-    toggle(cv,755,255,sim&&asd.actual,sim);if(sim)cv.target(744,244,100,57,()=>a.control('asd',!asd.desired),'asd-toggle',10);
-    cv.arc(921,271,18,21,0,360,C.text);text(cv,'A',921,278,19,C.text,'center');bold(cv,'Start-Stop Memory',962,264,21);
-    text(cv,sim?'Simulation: '+(ss.actual?'Remember':'Off'):'Not available on stock software',962,292,15,C.muted);
-    toggle(cv,1467,255,sim&&ss.actual,sim);if(sim)cv.target(1456,244,100,57,()=>a.control('startStop',!ss.desired),'startstop-toggle',10);
+    card(cv,184,312,680,60);card(cv,882,312,688,60);
+    for(let i=0;i<7;i++){const h=[8,16,26,18,30,14,8][i];cv.line(212+i*6,342-h/2*0.8,212+i*6,342+h/2*0.8,3,C.text);}
+    bold(cv,'Active Sound',268,337,20);
+    text(cv,sim?'Simulation: '+(asd.actual?'On':'Off'):'Not available on stock software',268,361,14,C.muted);
+    toggle(cv,755,327,sim&&asd.actual,sim);if(sim)cv.target(744,314,100,56,()=>a.control('asd',!asd.desired),'asd-toggle',10);
+    cv.arc(925,342,15,18,0,360,C.text);bold(cv,'A',925,348,16,C.text,'center');bold(cv,'Start-Stop Memory',966,337,20);
+    text(cv,sim?'Simulation: '+(ss.actual?'Remember':'Off'):'Not available on stock software',966,361,14,C.muted);
+    toggle(cv,1467,327,sim&&ss.actual,sim);if(sim)cv.target(1456,314,100,56,()=>a.control('startStop',!ss.desired),'startstop-toggle',10);
     // Ambient lighting: on the car the highlighted preset is the one the car confirmed.
-    card(cv,184,322,1386,86);icon(cv,'system',208,348,29,C.text);bold(cv,'Ambient Lighting',255,354,21);
+    card(cv,184,383,1386,86);icon(cv,'system',208,411,29,C.text);bold(cv,'Ambient Lighting',258,418,21);
     const ambientLine=sim?'Simulation · slot '+(ambient.actual||'--'):ambient.error?ambient.error:ambient.pending?'Sending slot '+ambient.desired+'...':ambient.actual?'Car reports slot '+ambient.actual:control.armed?'Waiting for car colour status':'Arm session to change colour';
-    text(cv,fit(ambientLine,38),255,384,15,ambient.error?C.amber:C.muted);
+    text(cv,fit(ambientLine,36),258,446,15,ambient.error?C.amber:C.muted);
+    const swatch={comfort:C.blue,sport:C.red,night:'#a77be0',custom:'#e3b55c'};
     ['comfort','sport','night','custom'].forEach((p,i)=>{
-        const x=611+i*235,slot=Number(a.ctx.settings.get('slot_'+p))||i+1;
+        const x=611+i*237,slot=Number(a.ctx.settings.get('slot_'+p))||i+1;
         const on=sim?a.ctx.settings.get('profile')===p:ambient.actual===slot;
-        button(cv,'',x,334,219,62,()=>a.setProfile(p),'profile-'+p,on);
-        icon(cv,p==='night'?'hybrid':p==='custom'?'system':'controls',x+98,341,20,[C.blue,C.red,'#ce8de6',C.text][i]);
-        text(cv,p[0].toUpperCase()+p.slice(1)+'  ·  '+slot,x+109,386,16,C.text,'center');
+        button(cv,'',x,395,221,62,()=>a.setProfile(p),'profile-'+p,on);
+        cv.circle(x+30,426,11,swatch[p]);cv.arc(x+30,426,13,15,0,360,swatch[p]+'66');
+        bold(cv,p[0].toUpperCase()+p.slice(1),x+54,424,18,C.text);text(cv,'Slot '+slot,x+54,445,13,C.muted);
     });
-    const logging=a.ctx.settings.get('logging')!=='off';
-    const actions=[['Refresh Data',()=>a.refresh()],['View Logs',()=>{a.systemMode='logs';a.navigate(3);}],['Reset Trip',()=>a.resetTrip()],['Drive Logging: '+(logging?'On':'Off'),()=>a.toggleLogging()]];
-    actions.forEach((entry,i)=>button(cv,entry[0],184+i*350,420,336,49,entry[1],'controls-'+i,i===3&&logging));
 }
 function metric(cv,label,value,unit,x,y,w,h,color){
     card(cv,x,y,w,h);text(cv,label,x+22,y+27,16,C.muted);bold(cv,value,x+22,y+h-16,28,color||C.text);text(cv,unit,x+w-18,y+h-18,15,C.muted,'right');
@@ -166,6 +180,7 @@ function system(cv,a){
     const ok=live>0;
     cv.arc(229,141,23,26,0,360,ok?C.green:C.amber);text(cv,ok?'OK':'?',229,149,ok?18:27,ok?C.green:C.amber,'center');
     bold(cv,'Vehicle Data',280,127,22);text(cv,a.demo?'Demo data (synthetic)':ok?live+' live car signals':'No live car signals yet',280,162,18,ok?C.green:C.amber);
+    button(cv,'Refresh',716,121,128,42,()=>a.refresh(),'refresh-data');
     bold(cv,a.emulator?'Host system (emulator)':'MGU System',905,112,19);
     progress(cv,'CPU',stats.cpu,905,122,633);progress(cv,'RAM',stats.ram,905,146,633);progress(cv,'Storage',stats.storage,905,170,633);
     card(cv,184,215,680,199);card(cv,882,215,688,199);

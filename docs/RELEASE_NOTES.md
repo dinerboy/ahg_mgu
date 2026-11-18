@@ -7,6 +7,7 @@ AHG Control Center 1.2.0 - drive logging and UI cleanup.
 - ASD/start-stop toggles are disabled on stock software instead of appearing to work.
 - Needle damping uses real frame time, up to 0.5 s; previously it was capped at 0.1 s, which made needles lag about 2.5x at 4 fps.
 - Larger text throughout. Flap status wraps instead of being cut off. Messages no longer cover the title. The status bar shows Flap/Mode/Speed/Oil/Trip/Log. The app log and signal viewer are paged. Version strings come from app.json.
+- Controls polish: the exhaust photo is now the full hero of the flap card (the line-drawn pipe icon is gone), with a segmented Auto/Open/Closed control, a status chip, colour swatches for ambient presets and plain-English messages.
 - 38 automated checks, including drive-log CSV/summary tests.
 
 AHG Control Center 1.1.1 fixes control status, diagnostic reconnect and live-signal freshness problems found after the first physical-car test.

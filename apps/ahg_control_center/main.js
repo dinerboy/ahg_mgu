@@ -17,14 +17,16 @@ function start(ctx) {
     app.notice=(s)=>{app.toast=s;app.toastUntil=Date.now()+3500;app.diagnostics.log(s);};
     app.ioCtx=Object.assign({},ctx,{log:app.diagnostics.logger(ctx.log)});
     app.controls=new Controls(app.ioCtx,app.store,{emulator:app.emulator,demo:()=>app.demo});
-    app.control=(id,value)=>app.controls.request(id,value).then((s)=>app.notice(s.source==='simulation'?'SIMULATED '+id+' = '+value:s.error||'Request sent; inspect ECU read-back')).catch((e)=>app.notice(e.message));
+    const NAMES={exhaust:'Exhaust flap',asd:'Active Sound',startStop:'Start-stop memory',ambientHardware:'Ambient slot'};
+    const said=(v)=>v===true?'on':v===false?'off':v==='OEM'?'auto':String(v).toLowerCase();
+    app.control=(id,value)=>app.controls.request(id,value).then((s)=>app.notice(s.source==='simulation'?'Simulation: '+NAMES[id]+' '+said(value):s.error||NAMES[id]+' '+said(value)+' sent - waiting for ECU read-back')).catch((e)=>app.notice(e.message));
     app.armControls=()=>{const p=app.controls.armed?app.controls.disarm():app.controls.arm();p.then(()=>app.notice(app.controls.armed?'Session armed; press a control to send':'Disarmed; OEM hand-back requested')).catch((e)=>app.notice(e.message));};
     app.recheckControls=()=>app.controls.recheck().then((ready)=>app.notice(ready?'MG1 flap ready; select Open/Closed/OEM':app.controls.detectionError)).catch((e)=>app.notice(e.message));
     app.navigate=(i)=>{app.page=M.clamp(i,0,3);ctx.settings.set('page',IDS[app.page]);};
     // Only remember the preset once the colour request went through (or simulation accepted it).
     app.setProfile=(p)=>{const slot=Number(ctx.settings.get('slot_'+p))||1;
         app.controls.request('ambientHardware',slot).then((s)=>{ctx.settings.set('profile',p);
-            app.notice(s.source==='simulation'?'SIMULATED ambient '+p+' (slot '+slot+')':'Ambient '+p+' sent (slot '+slot+'); waiting for car read-back');})
+            app.notice(s.source==='simulation'?'Simulation: ambient '+p+' (slot '+slot+')':'Ambient '+p+' sent (slot '+slot+'); waiting for car read-back');})
         .catch((e)=>app.notice(e.message));};
     app.driveLog=new DriveLog(ctx.dataDir);app.driveLog.setEnabled(ctx.settings.get('logging')!=='off');
     app.toggleLogging=()=>{ctx.settings.set('logging',ctx.settings.get('logging')==='off'?'on':'off');};
