@@ -55,6 +55,10 @@ class MguProvider {
             put('drive_mode',flapFor(raw)?modeName(raw):null,FES+'.statusFESVehicleDynamicSwitchHMI');
         },statusSwitchDriveDynamicSport2:(v)=>{
             const raw=v&&v.displayBoostPressure,k=this.pressUnit==='PSI'?0.1/14.5038:0.01;
+            if(!this.loggedBoost){this.loggedBoost=true;const L=this.ctx.log;(L.info||L.warn).call(L,'raw FES boost: '+JSON.stringify(raw));}
+            if(!M.finite(raw)||raw===255)return; // no sport-display boost: the DME fallback (hybrid.js) fills it
+            // a value that never moves (0 with the sport display off) is not trusted, as car_vitals
+            if(raw!==0)this.fesBoostMoved=true;if(!this.fesBoostMoved)return;
             put('boost',M.finite(raw)&&raw!==255?raw*k:null,FES+'.statusSwitchDriveDynamicSport2.displayBoostPressure ('+(this.pressUnit||'BAR?')+')');
         }},1000,generation);
         this.subscribe(UNITS,{statusNewCurrentUnitsStatusExt:(v)=>{

@@ -17,7 +17,9 @@ AHG Control Center 1.2.0 - drive logging and UI cleanup.
 - HV charge / 12 V no longer flicker to stale between their slower reads.
 - Car build always ready: no Arm button, demo data or simulation switch on the head unit (simulation is the desktop emulator). Read-only DME detection at startup, retried by itself; nothing is sent until a mode is pressed. Hiding the app no longer hands the flap back; quitting does.
 - ASD / start-stop switches removed (never available on stock software). Their row is now Hold Flap Position (default on, reset once) and Close Guard (tap to change the rpm).
-- 46 automated checks, including drive-log CSV/summary tests.
+- Boost fallback: when the sport display sends no boost (or only a constant 0), boost is read from the DME (read-only OBD/UDS F470 / F487 / F40B charge or manifold pressure minus F433 outside air pressure), as idrive7-apps car_vitals. The first raw sport-display value goes to the app log.
+- Exhaust flap confirmed physically opening on a G30 530e (DME accepted 2F 60FD Open).
+- 47 automated checks, including drive-log CSV/summary tests.
 
 AHG Control Center 1.1.1 fixes control status, diagnostic reconnect and live-signal freshness problems found after the first physical-car test.
 
