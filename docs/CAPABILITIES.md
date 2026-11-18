@@ -1,4 +1,4 @@
-# Capabilities — AHG Control Center 1.4.0
+# Capabilities — AHG Control Center 1.4.2
 
 The owner's later request enables control testing, superseding the original read-only V1 brief for the operations below. Exact physical vehicle compatibility remains unverified. See CONTROL_TESTING.md for steps and limits.
 
@@ -40,6 +40,6 @@ Vehicle requests are serialised. From 1.2.0 the car build arms itself at startup
 
 In 1.1.1, CDS/Vehicle2/FES getters are polled every second. FES.statusFESVehicleDynamicSwitchHMI adds the real driving-mode name using the upstream enum mapping. Subscription shutdown stops polling. Delayed diagnostic availability triggers read-only DME re-detection; Recheck is available, and blocking reasons persist.
 
-## Temperature colour guidance (1.4.1)
+## Temperature colour guidance (1.4.2)
 
 The coolant dial now starts amber at 115 C and red at 120 C. The previous 110 C red band was misleading for the owner's steady operating reading. These are app advisory colours, not calibrated BMW warning limits. The Health temperature criteria are unchanged; 108 C oil and 110 C coolant pass that item. Factory warnings take precedence.
