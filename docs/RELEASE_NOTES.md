@@ -17,7 +17,11 @@ AHG Control Center 1.2.0 - drive logging and UI cleanup.
 - HV charge / 12 V no longer flicker to stale between their slower reads.
 - Car build always ready: no Arm button, demo data or simulation switch on the head unit (simulation is the desktop emulator). Read-only DME detection at startup, retried by itself; nothing is sent until a mode is pressed. Hiding the app no longer hands the flap back; quitting does.
 - ASD / start-stop switches removed (never available on stock software). Their row is now Hold Flap Position (default on, reset once) and Close Guard (tap to change the rpm).
-- 46 automated checks, including drive-log CSV/summary tests.
+- Boost fallback: when the sport display sends no boost (or only a constant 0), boost is read from the DME (read-only OBD/UDS F470 / F487 / F40B charge or manifold pressure minus F433 outside air pressure), as idrive7-apps car_vitals. The first raw sport-display value goes to the app log.
+- Exhaust flap confirmed physically opening on a G30 530e (DME accepted 2F 60FD Open).
+- Warm-up page (ported from idrive7-apps Warm-Up): oil, coolant and gearbox oil with a "ready in ~X min" from the measured warm-up rate, a 20-minute trend, and a safe rev limit that climbs from the cold limit (3500 rpm) to the redline (6500) as the oil warms. Gearbox oil from the gearbox unit (read-only EGS 22 6000, ZF 8HP) or the car's BasicDataSet signal.
+- Cold over-rev warning on every page (flashing border + banner) when the revs pass the safe limit with cold oil; counted per cold start and logged. Advisory only - nothing is sent to the engine.
+- 52 automated checks, including drive-log CSV/summary tests.
 
 AHG Control Center 1.1.1 fixes control status, diagnostic reconnect and live-signal freshness problems found after the first physical-car test.
 

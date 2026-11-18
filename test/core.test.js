@@ -39,10 +39,10 @@ test('read-only MGU provider uses only known watchers, no demo fallback and shut
     const watchers=[],store=new M.SignalStore();let closed=0;
     const ctx={signals:{watch:(iface,instance,handlers,log,options)=>{watchers.push({iface,instance,handlers,options});return Promise.resolve({shutdown:()=>{closed++;}});}},log:{warn:()=>{}}};
     const p=new MguProvider(ctx,store);p.start();await new Promise(setImmediate);
-    assert.equal(watchers.length,6);watchers.forEach((w)=>assert.equal(w.options.pollMs,1000));assert.equal(store.get('boost').quality,'unsupported');assert.equal(store.get('rpm').quality,'unsupported');
+    assert.equal(watchers.length,7);watchers.forEach((w)=>assert.equal(w.options.pollMs,1000));assert.equal(store.get('boost').quality,'unsupported');assert.equal(store.get('rpm').quality,'unsupported');
     watchers[0].handlers.statusEngineSpeed2({actualValueRPMEngineCrankshaft:8000});assert.equal(store.get('rpm').value,2000);
     watchers[2].handlers.statusFESVehicleDynamicSwitchHMI({actualValueModeDrivingExperience:17});assert.equal(store.get('drive_mode').value,'Hybrid');
-    p.stop();assert.equal(closed,6);watchers[0].handlers.statusEngineSpeed2({actualValueRPMEngineCrankshaft:4000});assert.equal(store.get('rpm').value,2000);
+    p.stop();assert.equal(closed,7);watchers[0].handlers.statusEngineSpeed2({actualValueRPMEngineCrankshaft:4000});assert.equal(store.get('rpm').value,2000);
 });
 test('trip integrates received speed only and marks data gaps partial',()=>{
     const trip=new Trip();for(let i=0;i<=10;i++)trip.update({value:36,quality:'live'},i*100);

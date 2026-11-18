@@ -29,10 +29,21 @@ test('boost comes from the sport display in the car pressure unit, 255 = no valu
     const ctx={signals:{watch:(iface,inst,handlers)=>{watchers[iface]=handlers;return Promise.resolve({shutdown(){}});}},log:{warn(){}}};
     const p=new MguProvider(ctx,store);p.start();await new Promise(setImmediate);
     const fes=watchers['de.bmw.infotainment.drivingexcitement.FES'];
+    fes.statusSwitchDriveDynamicSport2({displayBoostPressure:0});assert.notEqual(store.get('boost').quality,'live','a constant 0 is not trusted');
     fes.statusSwitchDriveDynamicSport2({displayBoostPressure:85});assert.ok(Math.abs(store.get('boost').value-0.85)<1e-9);
     watchers['de.bmw.infotainment.vehicle.Vehicle'].statusNewCurrentUnitsStatusExt({unitOfMeasurementAirPressure:'PSI'});
     fes.statusSwitchDriveDynamicSport2({displayBoostPressure:123});assert.ok(Math.abs(store.get('boost').value-12.3/14.5038)<1e-9);
-    fes.statusSwitchDriveDynamicSport2({displayBoostPressure:255});assert.equal(store.get('boost').quality,'error');
+    fes.statusSwitchDriveDynamicSport2({displayBoostPressure:255});assert.ok(Math.abs(store.get('boost').value-12.3/14.5038)<1e-9,'255 = no value: keeps the last one');
     watchers['de.bmw.infotainment.drivingexcitement.Efficiencytainment2'].statusBatteryTemperature({list:[{actualValueTemperatureHighVoltageStorage:76}]});
     assert.equal(store.get('hv_temp').value,26);p.stop();
+});
+test('boost falls back to the DME: absolute charge pressure minus outside air pressure, read-only',async()=>{
+    const sent=[],store=new M.SignalStore();
+    const reply={'18:F470':[0x1f,0,0,0x10,0x80,0,0],'18:F433':[100]}; // 4224/32 = 132 kPa ; 100 kPa outside -> 0.32 bar
+    const link={available:true,physical:async(ecu,sid,data,ms,accept)=>{sent.push([ecu,sid].concat(data));
+        const key=ecu+':'+data.map((b)=>b.toString(16).toUpperCase().padStart(2,'0')).join('');const d=reply[key];
+        return d?[sid+0x40].concat(data,d):[0x7f,sid,0x31];},cancel(){}};
+    const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link});await h.start();h.stop();h.stopped=false;await h.tick();h.stop();
+    sent.forEach((r)=>assert.ok(r[1]===0x22||r[1]===0x01,'read-only: '+r));
+    assert.ok(Math.abs(store.get('boost').value-0.32)<1e-9,String(store.get('boost').value));assert.match(store.get('boost').provenance,/F470/);
 });

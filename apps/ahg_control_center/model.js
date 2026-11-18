@@ -10,7 +10,7 @@ const DEFINITIONS = {
     ev_range:{label:'EV range',unit:'km',decimals:0}, electric_kw:{label:'Electric power',unit:'kW',decimals:1},
     regen_kw:{label:'Recuperation',unit:'kW',decimals:1}, fuel:{label:'Trip consumption',unit:'L/100 km',decimals:1},
     energy_used:{label:'Trip energy',unit:'kWh',decimals:1}, regen_energy:{label:'Recovered energy',unit:'kWh',decimals:1},
-    hv_v:{label:'HV voltage',unit:'V',decimals:0}, hv_temp:{label:'HV battery temp',unit:'°C',decimals:0}, edrive_pct:{label:'eDRIVE needle',unit:'%',decimals:0}, electric_share:{label:'Electric distance',unit:'%',decimals:0},
+    gearbox:{label:'Gearbox oil',unit:'°C',min:0,max:150,decimals:0,staleMs:20000}, hv_v:{label:'HV voltage',unit:'V',decimals:0}, hv_temp:{label:'HV battery temp',unit:'°C',decimals:0}, edrive_pct:{label:'eDRIVE needle',unit:'%',decimals:0}, electric_share:{label:'Electric distance',unit:'%',decimals:0},
     drive_source:{label:'Drive source',unit:''}, drive_mode:{label:'Drive mode',unit:''},
     charging:{label:'Charging',unit:''}, charge_energy:{label:'Last charge energy',unit:'kWh',decimals:1},
     manifold_bar:{label:'Manifold absolute',unit:'bar abs'}, baro_bar:{label:'Atmospheric',unit:'bar abs'}

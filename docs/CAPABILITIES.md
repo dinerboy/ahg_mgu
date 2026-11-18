@@ -7,7 +7,7 @@ The owner's later request enables control testing, superseding the original read
 | RPM | CDS.statusEngineSpeed2.actualValueRPMEngineCrankshaft × 0.25 | Invalid 65535 rejected; stale after 3 seconds |
 | Oil / coolant | CDS.statusEngineTemperature; raw − 48 | Invalid 255 rejected; exact firmware needs checking |
 | Speed | Vehicle2.statusCarSpeed2.speedVehicleCentreOfGravity / 64 | Invalid 65535 rejected |
-| Boost | FES.statusSwitchDriveDynamicSport2.displayBoostPressure (sport display), 0.01 bar / 0.1 psi per the car's pressure unit (Vehicle.statusNewCurrentUnitsStatusExt) | Passive. Scaling marked best-guess upstream (live_data); 255 = no value |
+| Boost | DME fallback when the sport display sends nothing: 22 F470 / F487 / F40B (OBD 01 0B) absolute kPa minus 22 F433 outside air (read-only). Otherwise FES.statusSwitchDriveDynamicSport2.displayBoostPressure (sport display), 0.01 bar / 0.1 psi per the car's pressure unit (Vehicle.statusNewCurrentUnitsStatusExt) | Passive. Scaling marked best-guess upstream (live_data); 255 = no value |
 | HV charge | SME 0x07, 22 DDBC, 0.1 % | Read-only (kit/readonly-diag). From upstream edrive, set up on X5 45e; not yet confirmed on G30 530e |
 | Electric power / recuperation | SME 22 DDB4 (V, fallbacks DD68/DD66/DDEF) x 22 DD69 (A, signed) | Read-only, 1 s. Positive = driving, negative = recuperation/charging |
 | HV voltage / temperature | SME voltage above, or LSCDataSink.statusHighVoltageStorage; Efficiencytainment2.statusBatteryTemperature raw - 50 | Temperature scaling from the X5 45e |

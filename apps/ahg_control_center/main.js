@@ -4,7 +4,8 @@ const M=require('./model'),T=require('./theme'),V=require('./reference-view');
 const {Gauge}=require('./gauge'),{MockProvider,MguProvider}=require('./telemetry');
 const {Controls}=require('./controls'),{Diagnostics}=require('./diagnostics');
 const {listSheet}=require('./kit/sheet');
-const IDS=['home','controls','hybrid','drive','system'];
+const IDS=['home','controls','hybrid','drive','warmup','system'];
+const {WarmUp}=require('./warmup');
 const {HybridReader}=require('./hybrid');
 const KIT_RED=require('./kit/themes').THEMES.m_red;
 const {Trip}=require('./trip');
@@ -61,7 +62,9 @@ function start(ctx) {
     function sampler(){clearInterval(logTimer);const hz=Number(ctx.settings.get('logHz'))||2;
         logTimer=setInterval(()=>{try{const f=app.controls.getState('exhaust');app.driveLog.sample(app.store,{flap:f.source==='simulation'?'':f.readback||''});}catch(e){ctx.log.warn('drive log: '+String(e));}},1000/hz);}
     sampler();
-    const tripTimer=setInterval(()=>app.trip.update(app.store.get('speed'),Date.now()),200);
+    app.warm=new WarmUp(app.store,ctx.settings);
+    const tripTimer=setInterval(()=>{app.trip.update(app.store.get('speed'),Date.now());
+        const was=app.warm.over;if(app.warm.update()&&!was)app.diagnostics.log('cold over-rev: '+Math.round(app.store.get('rpm').value)+' rpm above safe '+app.warm.limit()+' (oil '+Math.round(app.store.get('oil').value)+' °C)');},200);
     let previous=Date.now();
     const loop=ctx.loop('MAIN',4,async()=>{
         const now=Date.now(),dt=M.clamp((now-previous)/1000,0,0.5);previous=now;app.elapsed=(now-app.diagnostics.started)/1000;
