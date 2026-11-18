@@ -2,7 +2,7 @@
   "id": "ahg_control_center",
   "title": "AHG Control Center",
   "description": "After Hours Garage dashboard for ID7: live gauges, hybrid battery, drive logging and stock MG1 exhaust flap and ambient colour control.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "vendor": "After Hours Garage",
   "license": "MIT",
   "loggingId": "AHG1",
