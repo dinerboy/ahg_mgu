@@ -7,7 +7,7 @@ function point(cx,cy,r,a) {return [cx+r*Math.cos(a*RAD),cy+r*Math.sin(a*RAD)];}
 class Gauge {
     constructor() {this.faces={};this.keys=[];this.needle={};}
     face(spec,r) {
-        const key=[spec.label,spec.min,spec.max,r].join(':');
+        const key=[spec.label,spec.min,spec.max,spec.warn,spec.hot,r].join(':');
         if(this.faces[key])return this.faces[key];
         const d=r*2+16,c=r+8;
         const layer=makeLayer(d,d,(cv)=>{
@@ -15,6 +15,7 @@ class Gauge {
             // Recorder arcs start at twelve o'clock; Cartesian geometry starts
             // at three. Keep warning zones on the same scale as ticks/needles.
             cv.arc(c,c,r*0.83,r*0.865,230,270,T.C.blue);
+            if(spec.warn!=null)cv.arc(c,c,r*0.83,r*0.865,M.angle(spec.warn,spec.min,spec.max)+90,M.angle(spec.hot==null?spec.max:spec.hot,spec.min,spec.max)+90,T.C.amber);
             if(spec.hot!=null)cv.arc(c,c,r*0.83,r*0.865,M.angle(spec.hot,spec.min,spec.max)+90,490,T.C.red);
             const count=Math.round((spec.max-spec.min)/spec.minor);
             for(let i=0;i<=count;i++){

@@ -1,10 +1,10 @@
-# Install AHG Control Center 1.4.0
+# Install AHG Control Center 1.4.1
 
 Target: BMW MGU iDrive 7 (ID7), not ID8. This is an OAP app package, not firmware and not a Windows executable. Vehicle operation has not yet been validated on the owner's exact G30 530e firmware. Keep existing apps and their configuration in place.
 
 ## USB package
 
-1. Download `AHG-Control-Center-1.4.0-Store.zip` from the GitHub release and extract it.
+1. Download `AHG-Control-Center-1.4.1-Store.zip` from the GitHub release and extract it.
 2. Copy its `mgu-repo/AHG-Control-Center` directory to a USB stick, preserving the `catalog.json` and adjacent `.tgz` files. The stick should contain `mgu-repo/AHG-Control-Center/catalog.json`.
 3. Connect the stick to an already configured MGU Store installation. Select the USB folder source, locate **AHG Control Center**, and install it through Store.
 4. Launch the AHG tile. Start with the vehicle stationary. The car build uses real data and read-only control detection from startup. No Arm button is required; a control press is required to actuate. Unknown values are expected where a signal is unsupported.
@@ -14,7 +14,7 @@ The ZIP is only a transport container; do not feed the ZIP directly to an OAP pa
 
 ## GitHub source
 
-Add `https://github.com/dinerboy/ahg_mgu` as a source in MGU Store. Choose Tags (`v1.4.0`) or the `main` branch to build the app using `mgu-repo.json`; this needs the upstream `mgu-python` tool (Python 3.12). Choose Releases to install the prebuilt `.tgz` asset instead. If a Store version does not offer prereleases, use the USB package or Tags source.
+Add `https://github.com/dinerboy/ahg_mgu` as a source in MGU Store. Choose Tags (`v1.4.1`) or the `main` branch to build the app using `mgu-repo.json`; this needs the upstream `mgu-python` tool (Python 3.12). Choose Releases to install the prebuilt `.tgz` asset instead. If a Store version does not offer prereleases, use the USB package or Tags source.
 
 MGU Store generates the missing `oap-sdk` module from a compatible stock BMW donor already on the head unit. No OEM SDK is included here. If donor discovery, permissions, deployment or renderer setup fails, resolve that in the existing Store/toolkit; this app does not bypass it. The upstream GPU renderer is recommended. Its slower software fallback remains available with native page/settings buttons.
 

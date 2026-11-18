@@ -1,3 +1,12 @@
+AHG Control Center 1.4.1 - correct misleading coolant dial colours.
+
+- Steady 110 C coolant is no longer inside the dial's red band.
+- Coolant app advisory bands: amber from 115 C, red from 120 C. These are display guidance, not BMW's calibrated overheating thresholds.
+- Existing Health CHECK thresholds are unchanged; 108 C oil / 110 C coolant passes the temperature item.
+- Gauge face caches include their advisory band settings.
+- Factory instrument warnings and a rising temperature still take precedence over app colours.
+- 63 automated checks passed; package/archive validation completed.
+
 AHG Control Center 1.4.0 - Claude's latest Gauges, Health and horsepower update.
 
 - New Gauges page with boost target versus actual, eight selectable dials and an engine/electric power split.

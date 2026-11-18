@@ -2,7 +2,7 @@
 
 Native BMW MGU / iDrive 7 dashboard built with the existing [idrive7-apps kit](https://github.com/cauliflowermossgrape/idrive7-apps). Uses the kit's Node 8 runtime, native graphics, touch targets and iDrive focus; no browser or WebView on the car.
 
-**Version 1.4.0: always-ready controls, live hybrid data, drive logging and After Hours Garage branding.** In the car the stock MG1 exhaust flap and ambient colour slots are ready from startup (no Arm button, no demo data). Simulation runs on the desktop emulator only. See [control testing](docs/CONTROL_TESTING.md) and [capabilities](docs/CAPABILITIES.md). Physical vehicle validation is pending. This app does not flash firmware, enable SSH or obtain SSH keys. The separate Windows installer is a different project.
+**Version 1.4.1: always-ready controls, live hybrid data, drive logging and After Hours Garage branding.** In the car the stock MG1 exhaust flap and ambient colour slots are ready from startup (no Arm button, no demo data). Simulation runs on the desktop emulator only. See [control testing](docs/CONTROL_TESTING.md) and [capabilities](docs/CAPABILITIES.md). Physical vehicle validation is pending. This app does not flash firmware, enable SSH or obtain SSH keys. The separate Windows installer is a different project.
 
 ![Home with live car signals](screenshots/01-home.png)
 
@@ -10,7 +10,7 @@ The reference design is rebuilt as functional widgets: metal instrument faces, i
 
 ## Install
 
-Download **AHG-Control-Center-1.4.0-Store.zip** from [Releases](https://github.com/dinerboy/ahg_mgu/releases). See [INSTALL](docs/INSTALL.md) for USB and GitHub source installation through the existing MGU Store. Requires an already supported, provisioned ID7 MGU with MGU Store and a compatible stock BMW donor SDK. The recommended GPU renderer is supplied separately by the upstream toolkit. This package does not install or update it.
+Download **AHG-Control-Center-1.4.1-Store.zip** from [Releases](https://github.com/dinerboy/ahg_mgu/releases). See [INSTALL](docs/INSTALL.md) for USB and GitHub source installation through the existing MGU Store. Requires an already supported, provisioned ID7 MGU with MGU Store and a compatible stock BMW donor SDK. The recommended GPU renderer is supplied separately by the upstream toolkit. This package does not install or update it.
 
 ## Run the emulator
 
@@ -29,7 +29,7 @@ python kit/tools/build.py --store-package ahg_control_center
 npm run package
 ```
 
-`npm run package` runs tests, builds the SDK-free OAP archive and verifies its contents. Output: `dist/ahg_control_center@1.4.0.tgz`, a USB catalog ZIP and SHA-256 checksums. No proprietary BMW SDK is redistributed. MGU Store supplies the owner's donor SDK during installation, as supported by its [publishing documentation](https://github.com/robertnisipeanu/mgu-store/blob/main/docs/publishing.md).
+`npm run package` runs tests, builds the SDK-free OAP archive and verifies its contents. Output: `dist/ahg_control_center@1.4.1.tgz`, a USB catalog ZIP and SHA-256 checksums. No proprietary BMW SDK is redistributed. MGU Store supplies the owner's donor SDK during installation, as supported by its [publishing documentation](https://github.com/robertnisipeanu/mgu-store/blob/main/docs/publishing.md).
 
 ## What works
 
