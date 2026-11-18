@@ -1,3 +1,14 @@
+AHG Control Center 1.4.0 - Claude's latest Gauges, Health and horsepower update.
+
+- New Gauges page with boost target versus actual, eight selectable dials and an engine/electric power split.
+- New Health page with misfire monitoring and saved PASS / CHECK / NO DATA reports; results are guidance, not a diagnosis.
+- Additional read-only engine values and OBD monitor results, with ambient warning/ready colour support.
+- Faster boost scheduling: dedicated read loop, bounded slow reads and back-off for unsupported reads.
+- Power displayed in metric horsepower by default, with an hp / kW setting; logs retain kW for compatibility.
+- Includes the prior Drive, Hybrid and Warm-up pages and current exhaust/ambient controls.
+- App and package version set to 1.4.0 for MGU Store update detection.
+- 63 automated checks passed; OAP archive, SDK exclusion, USB catalog hashes and ZIP integrity validated.
+
 AHG Control Center 1.3.0 - Gauges, Garage health check, misfire monitor and ambient warning light.
 
 - New Gauges page: boost target vs actual on one dial (target as an outline needle, actual in the accent, the difference underneath, plus load target / actual), eight dials you choose by tapping them (IAT, HPFP, LPFP, ignition timing, engine load, engine power / torque, electric power, gearbox oil, 12 V, HV battery temp and charge, oil, coolant, RPM, speed, misfires), and a power split bar: engine kW (crank torque x rpm from the sport display signals) next to electric kW (measured battery power).
