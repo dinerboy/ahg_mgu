@@ -1,3 +1,11 @@
+AHG Control Center 1.3.0 - versioned release of the latest update.
+
+- Publishes the latest 1.2.0 update as 1.3.0 so MGU Store can recognize a newer app version.
+- Includes the DME boost fallback and Warm-up page, plus the existing live gauges, hybrid readers, drive logging, updated branding and exhaust/ambient controls.
+- Application behavior is unchanged from the latest 1.2.0 build; the app and package versions are now 1.3.0.
+- Install AHG-Control-Center-1.3.0-Store.zip through its USB catalog or use ahg_control_center@1.3.0.tgz through MGU Store.
+- 52 automated checks; package validation covers SDK exclusion, catalog hashes and ZIP integrity.
+
 AHG Control Center 1.2.0 - drive logging and UI cleanup.
 
 - New Drive page (real data): live speed/RPM/oil/coolant, this drive's distance, time and maximums, and recent drives. The Hybrid page now appears only in demo mode, because the car has no verified hybrid source yet.

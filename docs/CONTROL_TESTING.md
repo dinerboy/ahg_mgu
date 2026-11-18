@@ -1,3 +1,5 @@
+> **1.3.0:** same control behavior as the latest 1.2.0 update; published with a higher version for MGU Store updates.
+
 > **1.2.0:** there is no Arm button or demo mode in the car any more: the controls are ready from startup, Hold defaults On, and hiding the app keeps the flap state (quitting hands back to the DME). Simulation is the desktop emulator (`npm run emulator`). The steps below describe 1.1.x and are kept for reference.
 
 # Control testing — 1.1.0
