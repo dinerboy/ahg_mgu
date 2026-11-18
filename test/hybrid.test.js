@@ -47,3 +47,18 @@ test('boost falls back to the DME: absolute charge pressure minus outside air pr
     sent.forEach((r)=>assert.ok(r[1]===0x22||r[1]===0x01,'read-only: '+r));
     assert.ok(Math.abs(store.get('boost').value-0.32)<1e-9,String(store.get('boost').value));assert.match(store.get('boost').provenance,/F470/);
 });
+test('boost is read every cycle; slow reads go one per cycle and back off when the car never answers',async()=>{
+    const sent=[],store=new M.SignalStore();
+    // DME answers boost + baro; the SME (hybrid battery) never answers
+    const reply={'18:F470':[0x1f,0,0,0x10,0x80,0,0],'18:F433':[100]};
+    const link={available:true,physical:async(ecu,sid,data)=>{const key=ecu+':'+data.map((b)=>b.toString(16).toUpperCase().padStart(2,'0')).join('');sent.push(key);
+        const d=reply[key];return d?[sid+0x40].concat(data,d):null;},cancel(){}};
+    const h=new HybridReader({signals:{},log:{warn(){},info(){}}},store,{link});await h.start();h.stop();h.stopped=false;
+    for(let i=0;i<12;i++){sent.length=0;
+        h.tasks().forEach((t)=>{t.due-=1500;}); // 1.5 s pass per cycle
+        await h.step();
+        assert.equal(sent.filter((k)=>k==='18:F470').length,1,'boost read once per cycle (cycle '+i+')');
+        assert.ok(sent.filter((k)=>k.indexOf('7:')===0).length<=4,'at most one slow task per cycle');}
+    const hv=h.tasks().find((t)=>t.name==='hv');assert.ok(hv.fails>=1);assert.ok(hv.due-Date.now()>100000,'unanswered HV reads back off to 2 min');
+    h.stop();assert.ok(Math.abs(store.get('boost').value-0.32)<1e-9);
+});
