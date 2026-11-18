@@ -21,7 +21,7 @@ function fixture(demo){const store=new M.SignalStore();if(demo)new MockProvider(
     return {store,demo,emulator:true,page:0,elapsed:2,systemMode:'overview',signalOffset:0,trip:new Trip(),gauges:new Gauge(),ctx:{settings:{get:(k)=>values[k]}},
         controls:{simulated:true,armed:false,ready:false,getState:(id)=>({source:'simulation',actual:null})},control:()=>{},armControls:()=>{},
         diagnostics:{started:Date.now(),entries:['DEMO provider'],update:()=>({cpu:10,ram:40,storage:30})},accent:()=> '#d51e28',navigate:()=>{},setProfile:()=>{},refresh:()=>{},resetTrip:()=>{},toggleDisplay:()=>{},settings:()=>{},exportReport:()=>{}};}
-for(const demo of [true,false])for(let page=0;page<5;page++)test('SDK records page '+page+' / '+(demo?'demo':'no data')+' with safe input targets',()=>{
+for(const demo of [true,false])for(let page=0;page<6;page++)test('SDK records page '+page+' / '+(demo?'demo':'no data')+' with safe input targets',()=>{
     const state=fixture(demo);state.page=page;const cv=new Recorder(1600,520);V.draw(cv,state,1/60);
     assert.ok(cv.words().length>100);assert.ok(cv.words().byteLength<200000);
     for(const t of cv.targets){assert.ok(t.x>=12&&t.y>=38&&t.x+t.w<=1588&&t.y+t.h<=477,JSON.stringify(t));}

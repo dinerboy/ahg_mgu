@@ -2,7 +2,7 @@
 const M=require('./model');
 const CDS='de.bmw.infotainment.vehicle.CDS', VEHICLE='de.bmw.infotainment.vehicle.Vehicle2';
 const FES='de.bmw.infotainment.drivingexcitement.FES',UNITS='de.bmw.infotainment.vehicle.Vehicle';
-const EFF='de.bmw.infotainment.drivingexcitement.Efficiencytainment2',LSC='de.bmw.infotainment.lsc.LSCDataSink';
+const BDS='de.bmw.infrastructure.analytics.BasicDataSet',EFF='de.bmw.infotainment.drivingexcitement.Efficiencytainment2',LSC='de.bmw.infotainment.lsc.LSCDataSink';
 // Passive SOME/IP sources from idrive7-apps live_data/signals.js and edrive/main.js.
 // Boost (sport display): 0.01 bar or 1 kPa a step, 0.1 psi a step in the car's pressure unit; 255 = no value.
 const PRESS_UNITS={1:'BAR',2:'KPA',3:'PSI'};
@@ -25,7 +25,7 @@ class MockProvider {
             electric_kw:18*Math.sin(s*0.18),regen_kw:Math.min(0,18*Math.sin(s*0.18)),fuel:4.1,
             energy_used:4.2,electric_share:68,drive_source:'Hybrid',drive_mode:'Sport',charging:'Not connected',charge_energy:9.8,
             baro_bar:1.013,manifold_bar:1.013+0.78+0.64*Math.sin(s*0.3),
-            hv_v:352-0.12*18*Math.sin(s*0.18),hv_temp:24,edrive_pct:Math.round(60*Math.sin(s*0.18)),regen_energy:0.6};
+            gearbox:78+4*Math.sin(s*0.04),hv_v:352-0.12*18*Math.sin(s*0.18),hv_temp:24,edrive_pct:Math.round(60*Math.sin(s*0.18)),regen_energy:0.6};
         Object.keys(data).forEach((k)=>this.store.put(k,data[k],'mock','Deterministic emulator/demo model'));
         const boost=M.boostFrom(this.store.get('manifold_bar'),this.store.get('baro_bar'));
         this.store.put('boost',boost,'mock','DEMO: manifold absolute minus atmospheric pressure');
@@ -72,6 +72,15 @@ class MguProvider {
             const e=entries(v,'displayActualValuePowerRelativeDrivingElectric')[0];if(!e)return;
             const d=e.displayActualValuePowerRelativeDrivingElectric,r=e.displayActualValuePowerRelativeRecuperation;
             if(M.finite(d)&&M.finite(r)&&d<=254&&r<=254)put('edrive_pct',d>0?d:-r,EFF+'.statusPowerRelativHybrid (cluster eDRIVE needle)');
+        }},1000,generation);
+        // gearbox oil from the car's BasicDataSet (°C + 48, 255 = none), only once it moves (some cars leave it fixed),
+        // and only while the gearbox unit (hybrid.js, EGS 22 6000) isn't answering
+        let gearFirst=null,gearMoved=false;
+        this.subscribe(BDS,{basicDataSet:(v)=>{
+            const raw=v&&v.valueTemperatureTransmissionOil;if(!M.finite(raw)||raw===255)return;const t=raw-48;
+            if(gearFirst==null)gearFirst=t;if(Math.abs(t-gearFirst)>=1)gearMoved=true;
+            const cur=this.store.get('gearbox');
+            if(gearMoved&&!(cur.quality==='live'&&String(cur.provenance).indexOf('EGS')===0))put('gearbox',t,BDS+'.basicDataSet.valueTemperatureTransmissionOil - 48');
         }},1000,generation);
         this.subscribe(LSC,{statusHighVoltageStorage:(v)=>{
             const x=one(v,'actualValueVoltageHighVoltageStorage');if(!M.finite(x))return;

@@ -29,10 +29,12 @@ const C={
     // car_vitals app.json config.dme.boost / baro (absolute kPa)
     boost:[{ecu:0x12,did:'F470',bytes:2,at:3,factor:0.03125,min:20,max:600,timeoutMs:600},{ecu:0x12,did:'F487',bytes:2,at:1,factor:0.03125,min:20,max:600,timeoutMs:600},
         {ecu:0x12,did:'F40B',bytes:1,factor:1,min:20,max:255,timeoutMs:600},{ecu:0x12,obd:'0B',bytes:1,factor:1,min:20,max:255,timeoutMs:600}],
+    // gearbox oil: EGS 22 6000 (ZF 8HP, °C + 40, read on a G22); DA12 (°C + 48) unconfirmed - only once it moves
+    gearbox:[{ecu:0x18,did:'6000',bytes:1,offset:-40,min:-40,max:160,timeoutMs:1000},{ecu:0x18,did:'DA12',bytes:1,offset:-48,min:-40,max:160,timeoutMs:1000}],
     baro:[{ecu:0x12,did:'F433',bytes:1,factor:1,min:50,max:115,timeoutMs:1000},{ecu:0x12,obd:'33',bytes:1,factor:1,min:50,max:115,timeoutMs:1000}]
 };
 const POWER_SIGN=-1;          // DD69: negative current = the battery gives power -> positive kW = driving
-const TICK_MS=500,FAST_MS=1000,SOC_MS=10000,V12_MS=5000,BARO_MS=60000;
+const TICK_MS=500,FAST_MS=1000,SOC_MS=10000,V12_MS=5000,BARO_MS=60000,GEAR_MS=5000;
 /** What drives the car now, from engine speed, battery power and speed (all measured). */
 function driveSource(rpm,kw,speed){
     if(!M.finite(rpm))return null;
@@ -55,7 +57,7 @@ class EnergyTrip {
 class HybridReader {
     constructor(ctx,store,options){
         this.ctx=ctx;this.store=store;this.options=options||{};this.link=null;this.reader=null;
-        this.timer=null;this.stopped=true;this.at={soc:0,v12:0,fast:0,baro:0};this.baro=101.3;this.trip=new EnergyTrip();this.error=null;
+        this.timer=null;this.stopped=true;this.at={soc:0,v12:0,fast:0,baro:0,gear:0};this.gearFirst=null;this.gearMoved=false;this.baro=101.3;this.trip=new EnergyTrip();this.error=null;
     }
     async start(){
         this.stopped=false;
@@ -85,6 +87,10 @@ class HybridReader {
         }
         if(now-this.at.soc>=SOC_MS){this.at.soc=now;const s=await this.reader.value('soc',C.soc);if(s!=null)this.put('hv_soc',s,'SME 22 DDBC');}
         if(now-this.at.v12>=V12_MS){this.at.v12=now;const b=await this.reader.value('v12',C.v12);if(b!=null)this.put('voltage',b,'12 V: '+(C.v12[this.reader.pick.v12||0].did||'OBD 42'));}
+        if(now-this.at.gear>=GEAR_MS){this.at.gear=now;const g=await this.reader.value('gearbox',C.gearbox);
+            if(g!=null){const c=C.gearbox[this.reader.pick.gearbox||0];
+                if(c.did==='DA12'){if(this.gearFirst==null)this.gearFirst=g;if(Math.abs(g-this.gearFirst)>=1)this.gearMoved=true;}
+                if(c.did!=='DA12'||this.gearMoved)this.put('gearbox',g,'EGS 22 '+c.did);}}
         this.derive(Date.now());
     }
     /** charge / manifold pressure (absolute kPa) minus outside air pressure, in bar */

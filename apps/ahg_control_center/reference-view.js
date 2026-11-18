@@ -1,7 +1,7 @@
 'use strict';
 const T=require('./theme'),M=require('./model'),Art=require('./art');
 const {C,text,bold,card,button,lineIcon}=T;
-const PAGES=['Home','Controls','Hybrid','Drive','System'];
+const PAGES=['Home','Controls','Hybrid','Drive','Warm-up','System'];
 function field(a,k,d){return M.format(a.store.get(k),d);}
 function withUnit(a,k,d,unit){const v=field(a,k,d);return v==='--'?v:v+' '+unit;}
 function fit(s,n){s=String(s);return s.length>n?s.slice(0,n-3)+'...':s;}
@@ -24,12 +24,13 @@ function header(cv,a){
     text(cv,'CONTROL CENTER',85,101,10,C.muted,'center');
     cv.line(158,48,158,470,1,'#333538');
     PAGES.forEach((label,i)=>{
-        const y=114+i*72,on=i===a.page,col=on?C.text:'#c9cccf';
-        if(on){cv.card(16,y-8,132,66,5,[[0,'#0a0a0a'],[0.45,C.accentDark],[1,C.accentDeep]]);cv.line(16,y-7,16,y+57,3,C.accent);cv.line(18,y+57,146,y+57,1,C.accent);}
-        if(label==='Drive'){cv.arc(82,y+15,9,11,-90,90,col);cv.line(82,y+15,89,y+8,2,col);cv.circle(82,y+15,2.5,col);}
-        else icon(cv,label.toLowerCase(),70,y+1,24,col);
-        text(cv,label,82,y+47,17,C.text,'center');
-        cv.target(16,y-8,132,66,()=>a.navigate(i),'nav-'+i,6);
+        const y=114+i*60,on=i===a.page,col=on?C.text:'#c9cccf';
+        if(on){cv.card(16,y-6,132,56,5,[[0,'#0a0a0a'],[0.45,C.accentDark],[1,C.accentDeep]]);cv.line(16,y-5,16,y+49,3,C.accent);cv.line(18,y+49,146,y+49,1,C.accent);}
+        if(label==='Drive'){cv.arc(82,y+13,8,10,-90,90,col);cv.line(82,y+13,88,y+7,2,col);cv.circle(82,y+13,2.5,col);}
+        else if(label==='Warm-up'){cv.roundRect(79,y,6,18,3,col);cv.circle(82,y+20,5,col);cv.line(82,y+6,82,y+20,2,'#0a0a0a');}
+        else icon(cv,label.toLowerCase(),71,y+2,21,col);
+        text(cv,label,82,y+42,16,C.text,'center');
+        cv.target(16,y-6,132,56,()=>a.navigate(i),'nav-'+i,6);
     });
     bold(cv,'BMW 530e',870,65,19,C.text,'center');
     const toast=a.toast&&Date.now()<a.toastUntil;
@@ -209,6 +210,49 @@ function drive(cv,a){
         text(cv,d.km.toFixed(1)+' km',1080,y,16,C.text);text(cv,'top '+(d.maxSpeed!=null?d.maxSpeed:'--')+' km/h',1180,y,16,C.muted);
         text(cv,'oil '+(d.maxOil!=null?d.maxOil:'--')+' °C',1550,y,16,C.muted,'right');if(i<2)cv.line(783,y+12,1550,y+12,1,'#36393d');});
 }
+// Cold over-rev warning on every page (advisory - nothing is sent to the engine).
+function coldAlert(cv,a){
+    const w=a.warm;if(!w||!w.over||a.ctx.settings.get('coldAlert')==='off')return;
+    const lim=w.limit(),oil=w.live('oil'),on=Math.floor(Date.now()/350)%2===0;
+    const c=on?C.red:'#7a0010';cv.line(176,42,1586,42,4,c);cv.line(176,474,1586,474,4,c);cv.line(176,42,176,474,4,c);cv.line(1586,42,1586,474,4,c);
+    cv.roundRect(560,44,620,34,8,C.red);
+    bold(cv,'COLD ENGINE · KEEP UNDER '+lim+' RPM · OIL '+Math.round(oil)+' °C',870,67,17,'#ffffff','center');
+}
+function tempRow(cv,a,key,label,y){
+    const w=a.warm,e=w.eta(key),col=key==='oil'?C.accent:key==='coolant'?C.blue:'#b98cff';
+    cv.circle(905,y-6,6,col);bold(cv,label,920,y,18,C.text);text(cv,'warm at '+w.target(key)+' °C',920,y+22,13,C.muted);
+    bold(cv,e.state==='none'?'--':Math.round(e.temp)+' °C',1180,y+8,24,C.text,'right');
+    const st=e.state==='ready'?['READY',C.accent]:e.state==='warming'?['~'+Math.max(1,Math.round(e.min))+' min'+(e.est?' (est.)':''),C.text]:
+        e.state==='off'?['Engine off',C.muted]:e.state==='stalled'?['Not rising',C.amber]:['No data',C.muted];
+    bold(cv,st[0],1550,y+8,e.state==='ready'||e.state==='warming'?24:18,st[1],'right');
+    if(e.state!=='none'){const f=M.clamp((e.temp-20)/(e.target-20),0,1);cv.roundRect(1200,y+18,350,6,3,'#2c2f33');cv.roundRect(1200,y+18,Math.max(6,350*f),6,3,col);}
+}
+function warmup(cv,a){
+    const w=a.warm;if(!w)return;
+    const oil=w.live('oil'),rpm=w.live('rpm'),lim=w.limit(),red=Number(a.ctx.settings.get('redline'))||6500,warmOil=w.target('oil');
+    const cold=oil!=null&&oil<warmOil;
+    card(cv,184,85,680,232);text(cv,'SAFE REV LIMIT',207,116,13,C.muted);
+    if(w.over){cv.roundRect(184,85,680,232,12,C.red);cv.roundRect(186,87,676,228,11,'#2b0306');text(cv,'SAFE REV LIMIT',207,116,13,'#ffb4b0');}
+    bold(cv,lim?String(lim):'--',207,178,58,w.over?'#ffffff':cold?C.text:C.accent);text(cv,'rpm',214+(lim?String(lim).length*35:62),178,20,C.muted);
+    text(cv,oil==null?'Waiting for the oil temperature':cold?'Climbs to '+red+' rpm as the oil reaches '+warmOil+' °C':'Engine warm - full rev range',207,212,16,w.over?'#ffffff':C.muted);
+    // bar: 0 .. redline, safe part in the accent, live rpm as a marker
+    const bx=207,bw=634,by=240,X=(r)=>bx+bw*M.clamp(r/red,0,1);
+    cv.roundRect(bx,by,bw,14,7,'#2c2f33');if(lim)cv.roundRect(bx,by,Math.max(14,X(lim)-bx),14,7,cold?C.amber:C.accent);
+    if(lim&&lim<red)cv.roundRect(X(lim),by,bx+bw-X(lim),14,7,'#5c1a20');
+    if(rpm!=null){const x=X(rpm);cv.line(x,by-8,x,by+22,3,w.over?'#ffffff':C.text);}
+    text(cv,'0',bx,by+38,12,C.muted);text(cv,red+' rpm',bx+bw,by+38,12,C.muted,'right');if(rpm!=null)text(cv,'now '+Math.round(rpm),X(rpm),by-12,12,C.text,'center');
+    text(cv,w.overCount?'Cold over-revs this start: '+w.overCount+' (peak '+Math.round(w.overPeak)+' rpm)':'No cold over-revs this start',bx,302,14,w.overCount?C.amber:C.muted);
+    card(cv,882,85,688,232);
+    const ready=w.ready();bold(cv,ready?'Ready to drive hard':'Warming up',905,118,20,ready?C.accent:C.text);
+    tempRow(cv,a,'oil','Oil',165);tempRow(cv,a,'coolant','Coolant',222);tempRow(cv,a,'gearbox','Gearbox oil',279);
+    // 20-minute trend
+    card(cv,184,331,1386,138);text(cv,'LAST 20 MIN',207,360,13,C.muted);
+    const gx=360,gw=1190,gy=345,gh=110,now=Date.now(),T=(t)=>gx+gw*(1-(now-t)/(20*60000)),Y=(v)=>gy+gh-gh*M.clamp((v-0)/130,0,1);
+    [40,80,120].forEach((v)=>{cv.line(gx,Y(v),gx+gw,Y(v),1,'#2a2d31');text(cv,v+' °C',gx-8,Y(v)+4,11,C.muted,'right');});
+    cv.line(gx,Y(warmOil),gx+gw,Y(warmOil),1,C.accent+'66');
+    [[1,C.accent],[2,C.blue],[3,'#b98cff']].forEach((k)=>{const pts=w.hist.filter((h)=>M.finite(h[k[0]])).map((h)=>[T(h[0]),Y(h[k[0]])]);if(pts.length>1)cv.polyline(pts,2,k[1]);});
+    [['Oil',C.accent],['Coolant',C.blue],['Gearbox','#b98cff']].forEach((l,i)=>{cv.circle(213,386+i*24,5,l[1]);text(cv,l[0],225,391+i*24,13,C.text);});
+}
 function progress(cv,label,value,x,y,w){
     text(cv,label,x,y+16,16,C.text);cv.roundRect(x+100,y+4,w-185,12,6,'#343638');
     if(M.finite(value))cv.roundRect(x+100,y+4,Math.max(1,(w-185)*M.clamp(value,0,100)/100),12,6,'#45ed43');
@@ -249,5 +293,5 @@ function system(cv,a){
     const actions=[['App Log',()=>{a.systemMode='logs';a.logOffset=0;}],['Signal Viewer',()=>{a.systemMode='signals';a.logOffset=0;}],['Export Diagnostics',()=>a.exportReport()],['Settings',()=>a.settings()]];
     actions.forEach((r,i)=>button(cv,r[0],184+i*350,425,336,44,r[1],'system-'+i));
 }
-function draw(cv,a,dt){header(cv,a);[home,controls,hybrid,drive,system][a.page](cv,a,dt);}
+function draw(cv,a,dt){header(cv,a);[home,controls,hybrid,drive,warmup,system][a.page](cv,a,dt);coldAlert(cv,a);}
 module.exports={draw,PAGES,wrap,fit};

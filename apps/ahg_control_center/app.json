@@ -54,6 +54,10 @@
     "de.bmw.infotainment.lsc.LSCDataSink": {
       "_optional": "HV voltage broadcast unavailable",
       "statusHighVoltageStorage": "s"
+    },
+    "de.bmw.infrastructure.analytics.BasicDataSet": {
+      "_optional": "Gearbox oil broadcast unavailable",
+      "basicDataSet": "s"
     }
   },
   "screens": [
@@ -217,6 +221,134 @@
       ]
     },
     {
+      "key": "warmOil",
+      "label": "Warm-up: oil is warm at",
+      "type": "choice",
+      "default": 80,
+      "options": [
+        [
+          70,
+          "70 \u00b0C"
+        ],
+        [
+          80,
+          "80 \u00b0C"
+        ],
+        [
+          90,
+          "90 \u00b0C"
+        ],
+        [
+          100,
+          "100 \u00b0C"
+        ]
+      ]
+    },
+    {
+      "key": "warmCoolant",
+      "label": "Warm-up: coolant is warm at",
+      "type": "choice",
+      "default": 80,
+      "options": [
+        [
+          70,
+          "70 \u00b0C"
+        ],
+        [
+          80,
+          "80 \u00b0C"
+        ],
+        [
+          90,
+          "90 \u00b0C"
+        ]
+      ]
+    },
+    {
+      "key": "warmGearbox",
+      "label": "Warm-up: gearbox oil is warm at",
+      "type": "choice",
+      "default": 60,
+      "options": [
+        [
+          40,
+          "40 \u00b0C"
+        ],
+        [
+          50,
+          "50 \u00b0C"
+        ],
+        [
+          60,
+          "60 \u00b0C"
+        ],
+        [
+          70,
+          "70 \u00b0C"
+        ]
+      ]
+    },
+    {
+      "key": "coldLimit",
+      "label": "Warm-up: safe rev limit when cold",
+      "type": "choice",
+      "default": 3500,
+      "options": [
+        [
+          3000,
+          "3000 rpm"
+        ],
+        [
+          3500,
+          "3500 rpm"
+        ],
+        [
+          4000,
+          "4000 rpm"
+        ]
+      ]
+    },
+    {
+      "key": "redline",
+      "label": "Warm-up: redline (limit when warm)",
+      "type": "choice",
+      "default": 6500,
+      "options": [
+        [
+          5500,
+          "5500 rpm"
+        ],
+        [
+          6000,
+          "6000 rpm"
+        ],
+        [
+          6500,
+          "6500 rpm"
+        ],
+        [
+          7000,
+          "7000 rpm"
+        ]
+      ]
+    },
+    {
+      "key": "coldAlert",
+      "label": "Warm-up: cold over-rev warning",
+      "type": "choice",
+      "default": "on",
+      "options": [
+        [
+          "on",
+          "On - warn on every page"
+        ],
+        [
+          "off",
+          "Off"
+        ]
+      ]
+    },
+    {
       "key": "logging",
       "label": "Drive logging",
       "type": "choice",
@@ -290,6 +422,10 @@
         [
           "drive",
           "Drive"
+        ],
+        [
+          "warmup",
+          "Warm-up"
         ],
         [
           "system",
