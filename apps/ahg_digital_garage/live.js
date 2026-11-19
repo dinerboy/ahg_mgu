@@ -11,8 +11,6 @@
  *      odometer  DME OBD 01 A6, 0.1 km              every 60 s (OBD odometer: not every DME answers it)
  *      VIN       DME 22 F190                        once
  *  A source refused or unanswered 3 times in a row is marked unsupported and not asked again.
- *
- * Demo (emulator / demo setting): steady synthetic values, clearly flagged as demo.
  */
 const {ReadOnlyDiag}=require('./kit/readonly-diag');
 const CDS='de.bmw.infotainment.vehicle.CDS',VEHICLE='de.bmw.infotainment.vehicle.Vehicle2';
@@ -23,7 +21,7 @@ function u(b,i,n){let v=0;for(let k=0;k<n;k++)v=v*256+b[i+k];return v;}
 
 class LiveData {
     constructor(ctx,opts){
-        this.ctx=ctx;this.opts=opts||{};this.demo=!!this.opts.demo;this.now=this.opts.now||Date.now;
+        this.ctx=ctx;this.opts=opts||{};this.now=this.opts.now||Date.now;
         this.values={};this.unsupported={};this.fails={};this.timers=[];this.subs=[];this.stopped=true;this.link=null;
     }
     put(key,value,src){if(value==null||(typeof value==='number'&&!fin(value)))return;this.values[key]={value:value,at:this.now(),src:src};if(this.onValue)this.onValue(key,value,src);}
@@ -32,7 +30,6 @@ class LiveData {
     source(key){const r=this.values[key];return r?r.src:null;}
     start(){
         this.stopped=false;
-        if(this.demo){this.sampleDemo();this.timers.push(setInterval(()=>this.sampleDemo(),1000));return;}
         this.watch(CDS,{statusEngineTemperature:(v)=>{this.put('oil',conv(v&&v.temperatureEngineOilDrive,1,-48,255,-40,170),'CDS');this.put('coolant',conv(v&&v.temperatureEngineDrive,1,-48,255,-40,170),'CDS');}},2000);
         this.watch(VEHICLE,{statusCarSpeed2:(v)=>this.put('speed',conv(v&&v.speedVehicleCentreOfGravity,1/64,0,65535,0,400),'Vehicle2')},2000);
         this.link=new ReadOnlyDiag(this.ctx.signals,this.ctx.log);
@@ -75,11 +72,6 @@ class LiveData {
             if(r&&r[0]===0x62&&r.length>=20){const s=String.fromCharCode.apply(null,r.slice(3,20));if(/^[A-HJ-NPR-Z0-9]{17}$/.test(s)){this.put('vin',s,'DME 22 F190');return;}}
             await new Promise((res)=>setTimeout(res,5000));
         }
-    }
-    sampleDemo(){
-        const t=this.now()/1000;
-        this.put('speed',0,'demo');this.put('oil',88+2*Math.sin(t*0.05),'demo');this.put('coolant',90+Math.sin(t*0.07),'demo');
-        this.put('v12',14.3+0.05*Math.sin(t*0.2),'demo');this.put('soc',84,'demo');this.put('fuel',73,'demo');
     }
     stop(){this.stopped=true;this.timers.forEach((t)=>{clearInterval(t);clearTimeout(t);});this.timers=[];this.subs.forEach((s)=>{if(s.shutdown)s.shutdown();});this.subs=[];if(this.link)this.link.cancel();}
 }

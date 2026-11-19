@@ -7,7 +7,7 @@ const app=path.resolve(__dirname,'../apps/ahg_digital_garage');
 const V=load('view'),T=load('theme'),{ServiceBook,DAY}=load('book'),{summarise,REQUEST,FaultScanner}=load('faults'),H=load('health');
 const {fixture}=load.fixtureModule();
 
-for(const empty of [false,true])for(let page=0;page<8;page++)test('page '+V.PAGES[page][0]+' ('+(empty?'no data':'demo')+') records with targets inside the safe area',async()=>{
+for(const empty of [false,true])for(let page=0;page<8;page++)test('page '+V.PAGES[page][0]+' ('+(empty?'no data':'fixture')+') records with targets inside the safe area',async()=>{
     const a=await fixture({empty});a.page=page;T.setAccent('red');
     const cv=new Recorder(1600,520);V.draw(cv,a);
     assert.ok(cv.words().length>100);
@@ -15,7 +15,7 @@ for(const empty of [false,true])for(let page=0;page<8;page++)test('page '+V.PAGE
     const keys=cv.targets.map((t)=>t.key);assert.equal(new Set(keys).size,keys.length,'unique target keys');
     for(let i=0;i<8;i++)assert.ok(keys.indexOf('nav-'+i)>=0);
 });
-test('every target runs without throwing (all pages, demo)',async()=>{
+test('every target runs without throwing (all pages, fixtures)',async()=>{
     const a=await fixture();
     for(let page=0;page<8;page++){a.page=page;const cv=new Recorder(1600,520);V.draw(cv,a);
         for(const t of cv.targets){if(t.key.indexOf('nav-')===0)continue;a.page=page;t.run();}}
@@ -24,11 +24,11 @@ test('app sources parse as ECMAScript 2017 (Node 8 on the car)',()=>{
     const acorn=require('acorn');
     fs.readdirSync(app).filter((f)=>f.endsWith('.js')).forEach((f)=>acorn.parse(fs.readFileSync(path.join(app,f),'utf8'),{ecmaVersion:2017,sourceType:'script'}));
 });
-test('manifest: nothing writable, only the diagnostic request method, demo off by default',()=>{
+test('manifest: nothing writable, only the diagnostic request method, live data only',()=>{
     const spec=require('../apps/ahg_digital_garage/app.json');
     Object.values(spec.signals).forEach((fields)=>Object.keys(fields).forEach((k)=>{if(k[0]!=='_')assert.notEqual(fields[k],'w',k);}));
     assert.deepEqual(spec.signals['com.harman.infotainment.systemfunctions.tasu.tasu.InternalTasu']._methods,['sendTasuRequest']);
-    assert.equal(spec.settings.find((s)=>s.key==='demo').default,'off');
+    assert.equal(spec.settings.some((s)=>s.key==='demo'),false);
     assert.equal(spec.id,'ahg_digital_garage');assert.ok(fs.existsSync(path.join(app,'icon.png')));
 });
 
@@ -43,7 +43,7 @@ test('service book: due by distance or time, whichever comes first',()=>{
     assert.equal(b.records[0].type,'service');
 });
 test('service book: the next item is the soonest, adjust stays in range, toggles',()=>{
-    const b=new ServiceBook(null);b.seedDemo();
+    const b=new ServiceBook(null);load.seedBook(b);
     assert.equal(b.next().item.id,'oil');assert.equal(b.next().s.kmLeft,4800);assert.equal(b.next().s.daysLeft,167);
     b.adjust('oil','km',-100000);assert.equal(b.item('oil').km,0);b.adjust('oil','months',-50);assert.equal(b.item('oil').months,0);
     assert.equal(b.state(b.item('oil')).status,'unknown');
@@ -91,4 +91,27 @@ test('due texts',()=>{
     assert.equal(V.leftText({status:'ok',kmLeft:4800,daysLeft:167}),'in 4,800 km · 167 days');
     assert.equal(V.leftText({status:'due',kmLeft:-250,daysLeft:null}),'250 km over');
     assert.equal(V.leftText({status:'unknown'}),'Not set');
+});
+
+// The release uses the same live path even with legacy settings or the emulator flag.
+test('startup keeps real data and persistence when old sample settings are present',async()=>{
+    const dir=fs.mkdtempSync(path.join(os.tmpdir(),'dg-live-'));
+    const previous=process.env.AHG_EMULATOR,previousUnit=process.env.AHG_UNIT_TEST;process.env.AHG_EMULATOR='1';process.env.AHG_UNIT_TEST='1';
+    const values={page:'garage',accent:'red',autoScan:'off',demo:'on'};
+    const ctx={dataDir:dir,spec:{version:'0.1.1'},log:{info(){},warn(){},error(){}},
+        settings:{get:k=>values[k],set:(k,v)=>{values[k]=v;},onChange(){}},
+        signals:{watch:async()=>({shutdown(){}}),proxy:()=>new Promise(()=>{})},
+        ui:{onClick(){}},onTab(){},loop:()=>({stop(){}})};
+    let a;
+    try{a=load('main').start(ctx);assert.equal(a.book.km(),null);assert.equal(a.live.get('soc'),null);
+        assert.equal(a.scanner.result,null);assert.equal(a.scanner.dir,path.join(dir,'scans'));
+        a.book.setManualKm(12345);a.markDone('oil');
+        assert.equal(new ServiceBook(dir).item('oil').lastKm,12345);
+    }finally{if(a)await a.stop();if(previous===undefined)delete process.env.AHG_EMULATOR;else process.env.AHG_EMULATOR=previous;if(previousUnit===undefined)delete process.env.AHG_UNIT_TEST;else process.env.AHG_UNIT_TEST=previousUnit;}
+});
+
+test('unanswered fault scan never reports a healthy fault memory',async()=>{
+    const a=await fixture({empty:true});a.scanner.result={at:Date.now(),active:0,stored:0,units:[],faults:[]};a.scanner.state='error';
+    const h=H.evaluate(a.book,a.live,a.scanner);
+    assert.equal(h.checks.find(x=>x.id==='faults').status,'unknown');assert.notEqual(h.headline,'No active faults');
 });

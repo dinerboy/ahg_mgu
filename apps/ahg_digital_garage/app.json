@@ -2,7 +2,7 @@
  "id": "ahg_digital_garage",
  "title": "AHG Digital Garage",
  "description": "After Hours Garage service book for ID7: vehicle health, service due dates, read-only fault memory scan, modifications and records.",
- "version": "0.1.0",
+ "version": "0.1.1",
  "vendor": "After Hours Garage",
  "license": "MIT",
  "loggingId": "AHG2",
@@ -139,22 +139,6 @@
    ]
   },
   {
-   "key": "demo",
-   "label": "Demo data",
-   "type": "choice",
-   "default": "off",
-   "options": [
-    [
-     "off",
-     "Off - this car's own data"
-    ],
-    [
-     "on",
-     "On - sample car, labeled demo"
-    ]
-   ]
-  },
-  {
    "key": "layout",
    "label": "Screen layout",
    "type": "choice",
@@ -162,7 +146,7 @@
    "options": [
     [
      "full",
-     "Full — preserve native HMI areas"
+     "Full â€” preserve native HMI areas"
     ],
     [
      "standard",

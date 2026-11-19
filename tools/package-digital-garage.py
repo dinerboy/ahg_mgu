@@ -32,6 +32,11 @@ def main():
         assert 'package/javascript/app.js' in names
         assert 'package/rhmiData/application.json' in names
         assert not any('node_modules/oap-sdk' in n or n.endswith(('.pem', '.key')) for n in names)
+        assert 'package/javascript/kit/car.js' not in names
+        assert 'package/javascript/kit/sim.js' not in names
+        for member in tar.getmembers():
+            if member.isfile() and member.name.endswith(('.js', '.json', '.tsv')):
+                assert b'demo' not in tar.extractfile(member).read().lower(), member.name
         for name in ('book', 'faults', 'health', 'live', 'view', 'pixel'):
             assert f'package/javascript/{name}.js' in names
         proxies = json.load(tar.extractfile('package/manifest.json'))['proxies']

@@ -176,7 +176,7 @@ function maintenance(cv,a){
 /* ---------- Diagnostics ---------- */
 function diagnostics(cv,a){
     const f=a.scanner,r=f.result,w=900;
-    heading(cv,'DIAGNOSTICS',f.scanning?'reading every control unit...':r?'last scan '+date(r.at)+(r.demo?' (demo)':''):'not scanned yet');
+    heading(cv,'DIAGNOSTICS',f.scanning?'reading every control unit...':r?'last scan '+date(r.at):'not scanned yet');
     panel(cv,X0,CT,w,70);
     button(cv,f.scanning?'Scanning... '+(f.progress||0)+' units':'Scan fault memory',X0+14,CT+12,280,46,f.scanning?null:()=>a.scan(),'scan',{kind:'accent',disabled:f.scanning,size:17});
     if(r){
@@ -274,10 +274,10 @@ function settings(cv,a){
     Object.keys(T.ACCENTS).forEach((id,i)=>{const x=X0+22+i*124,on=s.get('accent')===id,ac=T.ACCENTS[id];
         cv.roundRect(x,CT+56,112,112,12,on?C.text:C.edge);cv.roundRect(x+2,CT+58,108,108,11,'#0e1013');cv.circle(x+56,CT+100,24,ac.c);
         text(cv,ac.name.split(' ')[0],x+56,CT+152,14,on?C.text:C.muted,'center');cv.target(x,CT+56,112,112,()=>s.set('accent',id),'accent-'+id,12);});
-    panel(cv,X0,CT+202,660,210);bold(cv,'Demo data',X0+22,CT+238,20,C.text);
-    text(cv,'Shows a sample car (service history, fault scan). Off in the car by default.',X0+22,CT+264,15,C.muted);
-    button(cv,s.get('demo')==='on'?'Demo on':'Demo off',X0+22,CT+284,200,48,()=>s.set('demo',s.get('demo')==='on'?'off':'on'),'demo',{on:s.get('demo')==='on'});
-    button(cv,'All settings',X0+236,CT+284,200,48,()=>a.settings(),'all-settings');
+    panel(cv,X0,CT+202,660,210);bold(cv,'Vehicle connection',X0+22,CT+238,20,C.text);
+    text(cv,'Readings and fault scans use the connected car.',X0+22,CT+264,15,C.muted);
+    text(cv,'Unavailable values stay blank until a verified reading arrives.',X0+22,CT+290,15,C.muted);
+    button(cv,'All settings',X0+22,CT+324,240,48,()=>a.settings(),'all-settings');
     const px=X0+674,pw=X1-px;panel(cv,px,CT,pw,412);bold(cv,'About',px+22,CT+36,20,C.text);
     const lines=['Service book, fault scan and vehicle health for the G30 530e.','Everything is read only: no fault is cleared, nothing is coded.',
         'Data: '+(a.book.saveError?'NOT SAVED - '+fit(a.book.saveError,40):'saved in the app folder (garage.json)'),
