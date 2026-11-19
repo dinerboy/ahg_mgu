@@ -4,6 +4,18 @@ A second app next to AHG Control Center, focused on the car's condition rather t
 
 ![Garage page](../screenshots/digital-garage/dg-1-garage.png)
 
+## Install from MGU Store
+
+Add `https://github.com/dinerboy/ahg_mgu` as a GitHub source in MGU Store and select **Releases**, then **AHG Digital Garage** (`ahg_digital_garage`, version 0.1.0). This app has its own ID and data folder and installs alongside AHG Control Center.
+
+Release: [AHG Digital Garage 0.1.0](https://github.com/dinerboy/ahg_mgu/releases/tag/digital-garage-v0.1.0).
+
+For USB installation, extract `AHG-Digital-Garage-0.1.0-Store.zip` onto the USB drive so `mgu-repo/AHG-Digital-Garage/catalog.json` is present. Select that USB source in MGU Store. The `.tgz` release asset is the installable app; the original `AHG-Digital-Garage-0.1.0.zip` also includes Claude's source patch and screenshots.
+
+For a source build, choose the `main` branch or tag `digital-garage-v0.1.0`, then select **AHG Digital Garage**. The repository's `apps/*` discovery includes both apps.
+
+Requires a provisioned ID7 MGU with MGU Store and its supported donor SDK. No proprietary BMW SDK is included. This initial release has only been validated locally with simulated data; in-car validation is pending. Service reminders are a local service book, not BMW CBS readings.
+
 ## Pages
 
 | Page | What it does |
@@ -44,6 +56,7 @@ A source that is refused or not answered three times in a row is not asked again
 
 ```sh
 npm test                       # includes test/digital-garage.test.js
+npm run package:digital-garage  # OAP, USB catalog and release metadata
 node tools/render-dg.js        # all pages with demo data -> screenshots/digital-garage/
 node kit/tools/emu.js ahg_digital_garage
 python kit/tools/build.py --store-package ahg_digital_garage
