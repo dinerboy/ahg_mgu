@@ -20,7 +20,7 @@ def main():
     subprocess.run(['node', '--test'] + [str(p.relative_to(ROOT)) for p in sorted((ROOT/'test').glob('*.test.js'))], cwd=ROOT, check=True)
     subprocess.run([sys.executable, 'kit/tools/build.py', '--store-package', APP_ID], cwd=ROOT, check=True)
     app = ROOT/'apps'/APP_ID
-    spec = json.loads((app/'app.json').read_text())
+    spec = json.loads((app/'app.json').read_text(encoding='utf-8'))
     assert spec['id'] == APP_ID
     version = spec['version']
     dist = ROOT/'dist'
