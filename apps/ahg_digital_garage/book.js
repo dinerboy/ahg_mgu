@@ -129,19 +129,6 @@ class ServiceBook {
         m.fitted=!m.fitted;m.at=m.fitted?this.now():null;m.km=m.fitted?this.km():null;this.dirty=true;
         return this.record('mod',m.name+(m.fitted?' fitted':' removed'),{mod:id});
     }
-    /** demo / emulator content: a car part-way through its service intervals (matches the design mock-up) */
-    seedDemo(){
-        const now=this.now(),odo=72418;this.data=this.fresh();const o=this.data.odometer;o.km=odo;o.at=now;o.source='car';
-        const set=(id,kmAgo,daysAgo)=>{const i=this.item(id);i.lastKm=kmAgo==null?null:odo-kmAgo;i.lastAt=daysAgo==null?null:now-daysAgo*DAY;};
-        set('oil',10200,198);set('brakes',22000,600);set('brake_fluid',null,500);set('air_filter',40200,900);set('cabin_filter',10200,198);
-        set('spark_plugs',42000,1300);set('vehicle_check',10200,198);set('battery_12v',null,700);
-        this.data.vehicle.vin='WBAJA91070CDEMO00';
-        ['exhaust','coding','tint'].forEach((id,k)=>{const m=this.data.mods.find((x)=>x.id===id);m.fitted=true;m.at=now-(300-k*90)*DAY;m.km=odo-12000+k*4000;});
-        this.data.records=[{at:now-198*DAY,km:odo-10200,type:'service',text:'Engine Oil done',item:'oil'},
-            {at:now-198*DAY,km:odo-10200,type:'service',text:'Cabin Filter done',item:'cabin_filter'},
-            {at:now-210*DAY,km:odo-11000,type:'mod',text:'Coding fitted',mod:'coding'},
-            {at:now-300*DAY,km:odo-12000,type:'mod',text:'Exhaust fitted',mod:'exhaust'}];
-        this.dirty=false;
-    }
+
 }
 module.exports={ServiceBook,ITEMS,MODS,VEHICLE,DAY,MONTH,SOON_KM,SOON_DAYS};

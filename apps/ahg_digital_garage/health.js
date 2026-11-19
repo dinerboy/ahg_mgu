@@ -11,7 +11,8 @@ function check(id,name,status,detail){return {id,name,status,detail};}
 function evaluate(book,live,scanner,now){
     now=now||Date.now();const out=[];
     // fault memory
-    const r=scanner&&scanner.result;
+    const result=scanner&&scanner.result;
+    const r=result&&result.units&&result.units.some((u)=>u.ok)?result:null;
     if(!r)out.push(check('faults','Fault memory','unknown','Not scanned yet'));
     else{
         const age=(now-(r.at||0))/86400000;
@@ -30,7 +31,7 @@ function evaluate(book,live,scanner,now){
         check('v12','12 V battery',v<LIMITS.v12Low||v>LIMITS.v12High?'due':v<LIMITS.v12Soft?'soon':'ok',v.toFixed(1)+' V'));
     // temperatures
     const c=live.get('coolant'),o=live.get('oil');
-    if(c==null&&o==null)out.push(check('temps','Engine temperatures','unknown','Engine not running'));
+    if(c==null&&o==null)out.push(check('temps','Engine temperatures','unknown','No temperature readings'));
     else{const st=(c!=null&&c>=LIMITS.coolantHot)||(o!=null&&o>=LIMITS.oilHot)?'due':(c!=null&&c>=LIMITS.coolantWarn)||(o!=null&&o>=LIMITS.oilWarn)?'soon':'ok';
         out.push(check('temps','Engine temperatures',st,'Oil '+(o==null?'--':Math.round(o)+' °C')+' · Coolant '+(c==null?'--':Math.round(c)+' °C')));}
     // HV battery

@@ -20,7 +20,7 @@ def main():
     subprocess.run(['node', '--test'] + [str(p.relative_to(ROOT)) for p in sorted((ROOT/'test').glob('*.test.js'))], cwd=ROOT, check=True)
     subprocess.run([sys.executable, 'kit/tools/build.py', '--store-package', APP_ID], cwd=ROOT, check=True)
     app = ROOT/'apps'/APP_ID
-    spec = json.loads((app/'app.json').read_text())
+    spec = json.loads((app/'app.json').read_text(encoding='utf-8'))
     assert spec['id'] == APP_ID
     version = spec['version']
     dist = ROOT/'dist'
@@ -32,6 +32,11 @@ def main():
         assert 'package/javascript/app.js' in names
         assert 'package/rhmiData/application.json' in names
         assert not any('node_modules/oap-sdk' in n or n.endswith(('.pem', '.key')) for n in names)
+        assert 'package/javascript/kit/car.js' not in names
+        assert 'package/javascript/kit/sim.js' not in names
+        for member in tar.getmembers():
+            if member.isfile() and member.name.endswith(('.js', '.json', '.tsv')):
+                assert b'demo' not in tar.extractfile(member).read().lower(), member.name
         for name in ('book', 'faults', 'health', 'live', 'view', 'pixel'):
             assert f'package/javascript/{name}.js' in names
         proxies = json.load(tar.extractfile('package/manifest.json'))['proxies']

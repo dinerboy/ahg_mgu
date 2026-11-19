@@ -8,9 +8,9 @@ Native BMW MGU / iDrive 7 dashboard built with the existing [idrive7-apps kit](h
 
 The reference design is rebuilt as functional widgets: metal instrument faces, independently animated needles, digital readings, left navigation, glossy cards, Hybrid and System pages. It is adapted to the MGU's wider 1920×720 screen and reserved native HMI areas; it is not a pixel-for-pixel copy of the supplied 16:9 mockup. Artwork is illustrative; it is not a photograph of the owner's car.
 
-## AHG Digital Garage (new, 0.1.0)
+## AHG Digital Garage (0.1.1)
 
-A second app in this repository: service due dates, vehicle health, a read-only fault memory scan, modifications and records, in a pixel-art garage design. Install **AHG Digital Garage** from this repository's MGU Store Releases source. See [DIGITAL_GARAGE](docs/DIGITAL_GARAGE.md) for setup and the [0.1.0 release](https://github.com/dinerboy/ahg_mgu/releases/tag/digital-garage-v0.1.0).
+A second app in this repository: service due dates, vehicle health, a read-only fault memory scan, modifications and records, in a pixel-art garage design. Install **AHG Digital Garage** from this repository's MGU Store Releases source. See [DIGITAL_GARAGE](docs/DIGITAL_GARAGE.md) for setup and the [0.1.1 release](https://github.com/dinerboy/ahg_mgu/releases/tag/digital-garage-v0.1.1).
 
 ![AHG Digital Garage](screenshots/digital-garage/dg-1-garage.png)
 

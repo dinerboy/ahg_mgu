@@ -14,6 +14,7 @@ The RHMI layout (application.xml + uiDescription.json) is GENERATED from the
 apps use on this firmware (see reference/rhmi-widget-cells.md).
 """
 import gzip, json, os, re, shutil, sys, tarfile, tempfile, uuid
+from pathlib import Path
 from xml.sax.saxutils import escape
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import pack_data  # noqa: E402
@@ -669,6 +670,22 @@ def build(app_id, language='en', preview_only=False, store_package=False):
             shutil.copytree(p, os.path.join(src, 'javascript', 'kit', f))
         else:
             shutil.copy(p, os.path.join(src, 'javascript', 'kit', f))
+    if app_id == 'ahg_digital_garage':
+        # This app always uses its own live reader. Do not ship the unrelated
+        # sample driving provider or its unused settings translations.
+        runtime = Path(src) / 'javascript' / 'kit'
+        for name in ('car.js', 'sim.js'):
+            (runtime / name).unlink(missing_ok=True)
+        display = runtime / 'display.js'
+        display.write_text(display.read_text(encoding='utf-8').replace('DEMO badge', 'status badge'), encoding='utf-8')
+        for locale in (runtime / 'locales').glob('*'):
+            if locale.suffix == '.json':
+                texts = json.loads(locale.read_text(encoding='utf-8'))
+                texts = {k: v for k, v in texts.items() if 'demo' not in (k + str(v)).lower()}
+                locale.write_text(json.dumps(texts, ensure_ascii=False), encoding='utf-8')
+            elif locale.suffix == '.tsv':
+                locale.write_text(''.join(line for line in locale.read_text(encoding='utf-8').splitlines(True)
+                                          if 'demo' not in line.lower()), encoding='utf-8')
     if missing:
         # what fit_to_unit took out: the app logs it at each start (kit/runtime/mgu.js)
         json.dump(missing, open(os.path.join(src, 'javascript', 'kit', 'missing-interfaces.json'), 'w', encoding='utf-8', newline='\n'), indent=1)

@@ -37,14 +37,11 @@ function summarise(replies,texts){
     faults.sort((a,b)=>rank[a.sev]-rank[b.sev]||a.address-b.address||(a.code<b.code?-1:1));
     return {units:units,faults:faults,active:faults.filter((f)=>f.sev==='crit').length,stored:faults.filter((f)=>f.sev!=='crit').length};
 }
-const DEMO_REPLIES=()=>new Map([
-    [0x12,[0x59,0x02,0xFF]],[0x40,[0x59,0x02,0xFF,0x80,0x3A,0x13,0x08]],[0x60,[0x59,0x02,0xFF]],
-    [0x29,[0x59,0x02,0xFF]],[0x07,[0x59,0x02,0xFF]],[0x18,[0x59,0x02,0xFF]],[0x63,[0x59,0x02,0xFF,0xB7,0xF8,0x84,0x08]],
-    [0x30,[0x59,0x02,0xFF]],[0x01,[0x59,0x02,0xFF]],[0x78,[0x59,0x02,0xFF]],[0x14,[0x59,0x02,0xFF]],[0x3A,[0x59,0x02,0xFF]]]);
+
 
 class FaultScanner {
     constructor(ctx,opts){
-        this.ctx=ctx;this.opts=opts||{};this.demo=!!this.opts.demo;this.dir=this.opts.dir||null;
+        this.ctx=ctx;this.opts=opts||{};this.dir=this.opts.dir||null;
         this.diag=null;this.ready=false;this.error=null;
         this.state='idle';               // idle | scanning | done | error
         this.progress=0;this.result=null;this.at=null;
@@ -52,7 +49,7 @@ class FaultScanner {
         this.loadLast();
     }
     async init(){
-        if(this.demo||this.diag)return this;
+        if(this.diag)return this;
         const d=new Diag(this.ctx.signals,this.ctx.log);d.quiet=true;
         await d.init();this.diag=d;this.error=d.error;this.ready=!!d.p;
         return this;
@@ -63,14 +60,10 @@ class FaultScanner {
         if(this.scanning)return this.result;
         this.state='scanning';this.progress=0;this.error=null;
         try{
-            let replies;
-            if(this.demo){await new Promise((r)=>setTimeout(r,this.opts.demoMs==null?2500:this.opts.demoMs));replies=DEMO_REPLIES();}
-            else{
-                await this.init();
-                if(!this.diag||!this.diag.p)throw new Error(this.error||'diagnostic link unavailable');
-                replies=await this.diag.functional(SCAN_SID,REQUEST.slice(),{idleMs:this.opts.idleMs||4000,maxMs:30000,onReply:(ecu,n)=>{this.progress=n;}});
-            }
-            this.result=summarise(replies,this.texts);this.at=Date.now();this.state='done';this.result.at=this.at;this.result.demo=this.demo;
+            await this.init();
+            if(!this.diag||!this.diag.p)throw new Error(this.error||'diagnostic link unavailable');
+            const replies=await this.diag.functional(SCAN_SID,REQUEST.slice(),{idleMs:this.opts.idleMs||4000,maxMs:30000,onReply:(ecu,n)=>{this.progress=n;}});
+            this.result=summarise(replies,this.texts);this.at=Date.now();this.state='done';this.result.at=this.at;
             if(!replies.size){this.state='error';this.error='no control unit answered';}
             this.save();return this.result;
         }catch(e){this.state='error';this.error=String(e&&e.message||e);throw e;}
